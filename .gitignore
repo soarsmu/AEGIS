@@ -162,3 +162,4 @@ cython_debug/
 
 ddpg_chkp
 docs
+checkpoints
