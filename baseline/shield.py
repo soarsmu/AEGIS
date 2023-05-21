@@ -661,7 +661,7 @@ class Shield(object):
     print '#############Fail List:###############'
     for (i, e) in fail_list:
       print 'initial state:\n{}\nend state: \n{}\n----'.format(i, e)
-
+    print 'Success: {}, Fail: {}'.format(success_time, fail_time)
     print 'shield times: {}, shield ratio: {}'.format(self.shield_count, float(self.shield_count)/(test_ep*test_step))
 
 

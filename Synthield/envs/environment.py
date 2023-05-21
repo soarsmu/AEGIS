@@ -110,7 +110,7 @@ class Environment:
 
         if not self.unsafe:
             # Bad Terminal
-            if not ((xk < self.x_max).all() and (xk > self.x_min).all()):
+            if not ((xk <= self.x_max).all() and (xk >= self.x_min).all()):
                 terminal = True
                 reward = self.bad_reward
             # Good Terminal
@@ -119,11 +119,11 @@ class Environment:
         else:
             # Bad Terminal
             if self.multi_boundary:
-                if ((np.array(xk) < self.x_max)*(np.array(xk) > self.x_min)).all(axis=1).any():
+                if ((np.array(xk) <= self.x_max)*(np.array(xk) >= self.x_min)).all(axis=1).any():
                     terminal = True
                     reward = self.bad_reward
             else:
-                if ((np.array(xk) < self.x_max)*(np.array(xk) > self.x_min)).all():
+                if ((np.array(xk) <= self.x_max)*(np.array(xk) >= self.x_min)).all():
                     terminal = True
                     reward = self.bad_reward
             # Good Terminal

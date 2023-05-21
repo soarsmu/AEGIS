@@ -1,56 +1,39 @@
-import time
 import json
 import argparse
+import logging
+import random
 import numpy as np
-from sklearn import svm
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.pipeline import make_pipeline
 from DDPG import DDPG
 from envs import ENV_CLASSES
-from ES import evolution_policy
+from sklearn.neural_network import MLPClassifier
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Running Options")
-    parser.add_argument("--env", default="cartpole", type=str, help="The selected environment.")
-    parser.add_argument("--do_eval", action="store_true", help="Test RL controller")
-    parser.add_argument("--test_episodes", default=50, help="test_episodes", type=int)
-    parser.add_argument("--do_retrain", action="store_true", help="retrain RL controller")
-    args = parser.parse_args()
+logging.getLogger().setLevel(logging.INFO)
 
-    env = ENV_CLASSES[args.env]()
-    with open("configs.json") as f:
-        configs = json.load(f)
-
-    DDPG_args = configs[args.env]
-    DDPG_args["enable_retrain"] = args.do_retrain
-    DDPG_args["enable_eval"] = args.do_eval
-    DDPG_args["enable_fuzzing"] = False
-    DDPG_args["enable_falsification"] = False
-
-    DDPG_args["test_episodes"] = args.test_episodes
-    actor = DDPG(env, DDPG_args)
-
-    # coffset = evolution_policy(env, actor, 5, 250)
-
+def monitor_synthesis(actor, env, K, degree=3, test_episodes=500, train_size=100):
     safe_set = []
     unsafe_set = []
-    while len(safe_set) < 100 or len(unsafe_set) < 100:
+    while len(safe_set) < train_size or len(unsafe_set) < train_size:
         s = env.reset()
-        for i in range(500):
+        for i in range(test_episodes):
+            s_last = s
             a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
+            a_K = K.dot(s)
             s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-            if terminal and i < 499:
-                unsafe_set.append(np.reshape(np.array(s), (1, actor.s_dim)).squeeze())
+            if terminal and i < test_episodes-1:
+                unsafe_set.append(np.reshape(np.array(s_last), (1, actor.s_dim)).squeeze())
                 break
             else:
                 safe_set.append(np.reshape(np.array(s), (1, actor.s_dim)).squeeze())
-    print(len(safe_set), len(unsafe_set))
-    safe_set = safe_set[:100]
-    safe_set_train = safe_set[:80]
-    safe_set_test = safe_set[80:]
-    unsafe_set_train = unsafe_set[:80]
-    unsafe_set_test = unsafe_set[80:]
+
+    safe_set = random.sample(safe_set, train_size)
+    safe_set_train = safe_set[:int(train_size*0.9)]
+    safe_set_test = safe_set[int(train_size*0.9):]
+    unsafe_set_train = unsafe_set[:int(train_size*0.9)]
+    unsafe_set_test = unsafe_set[int(train_size*0.9):]
     safe_set_train = np.array(safe_set_train)
     safe_set_test = np.array(safe_set_test)
     unsafe_set_train = np.array(unsafe_set_train)
@@ -69,37 +52,71 @@ if __name__ == "__main__":
     # print(train_set.shape, train_label.shape)
     # clf.fit(train_set, train_label)
 
-    degree = 2  # Degree of the polynomial features
-    poly_features = PolynomialFeatures(degree)
-    model = make_pipeline(poly_features, LogisticRegression())
+    # degree = 2  # Degree of the polynomial features
+    # poly_features = PolynomialFeatures(degree)
+    # model = make_pipeline(poly_features, LogisticRegression())
 
-    # Fit the model to the data
+    # # Fit the model to the data
+    model = MLPClassifier(solver='sgd', alpha=1e-5,hidden_layer_sizes=(50,2), random_state=1)
     model.fit(train_set, train_label)
     print(model.score(test_set, test_label))
+    print(model.predict(safe_set_test))
+    print(model.predict(unsafe_set_test))
+
+    return model
+    # real = 0
+    # unreal = 0
+    # for i in range(2):
+    #     s = env.reset()
+    #     for j in range(500):
+    #         a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
+    #         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+    #         if terminal and model.predict(np.reshape(np.array(s), (1, actor.s_dim))) == 0:
+    #             real += 1
+    #         elif not terminal and model.predict(np.reshape(np.array(s), (1, actor.s_dim))) == 0:
+    #             unreal += 1
+                
+    # print("real", real)
+    # print("unreal", unreal)
+
+    # exit()
     # Get the feature names
-    feature_names = poly_features.get_feature_names()
+    # feature_names = poly_features.get_feature_names()
 
     # Print the feature names
-    print("Polynomial Features:", feature_names)
-    # Retrieve the coefficients
-    coefficients = model.named_steps['logisticregression'].coef_
+    # print("Polynomial Features:", feature_names)
+    # # Retrieve the coefficients
+    # coefficients = model.named_steps['logisticregression'].coef_
 
-    print("Coefficients:", coefficients)
+    # print("Coefficients:", coefficients)
     # print(clf.score(test_set, test_label))
     # print(clf.predict(safe_set_test))
     # print(clf.predict(unsafe_set_test))
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Running Options")
+    parser.add_argument("--env", default="cartpole", type=str, help="The selected environment.")
+    parser.add_argument("--do_eval", action="store_true", help="Test RL controller")
+    parser.add_argument("--test_episodes", default=500, help="test_episodes", type=int)
+    parser.add_argument("--do_retrain", action="store_true", help="retrain RL controller")
+    args = parser.parse_args()
+
+    env = ENV_CLASSES[args.env]()
+    with open("configs.json") as f:
+        configs = json.load(f)
+
+    DDPG_args = configs[args.env]
+    DDPG_args["enable_retrain"] = args.do_retrain
+    DDPG_args["enable_eval"] = args.do_eval
+    DDPG_args["enable_fuzzing"] = False
+    DDPG_args["enable_falsification"] = False
+
+    DDPG_args["test_episodes"] = args.test_episodes
+    actor = DDPG(env, DDPG_args)
+
+    (intercept, coefficients, feature_names), model = monitor_synthesis(actor, env)
+    
     actor.sess.close()
-    # s = env.reset()
-    # for i in tqdm(range(250)):
-    #     # a_linear = policy.predict(np.reshape(np.array(s), (1, policy.s_dim)))
-    #     a_linear = coffset[:5-1].dot(s**2)+ coffset[5-1]
-    #     s, r, terminal = env.step(a_linear.reshape(policy.a_dim, 1))
-    #     if terminal:
-    #         break
-    # # print(evolution_dynamics(env, 0, policy, 3, 250))
-    # # print(evolution_dynamic(env, 0, policy, 4, 250))
-    # policy.sess.close()
 
 
 
