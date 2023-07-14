@@ -24,6 +24,7 @@ from pympc.control.controllers import ModelPredictiveController
 from z3verify import bound_z3
 from skopt import gp_minimize
 from sklearn.linear_model import LinearRegression
+from metrics import neural_network_performance, linear_function_performance
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     DDPG_args["enable_falsification"] = False
 
     DDPG_args["test_episodes"] = args.test_episodes
-    actor = DDPG(env, DDPG_args)
+    actor = DDPG(env, DDPG_args)    
     O_inf_list = []
     K_list = []
 
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     O_inf = Sys.mcais(K, D)
     O_inf_list.append(O_inf)
     K_list.append(K)
-
+    
     ce = S0.is_included_in_with_ce(O_inf)
     while ce is not None:
         flag = True
@@ -117,72 +118,28 @@ if __name__ == "__main__":
 
     def objective(param):
         violations = 0
-        overhead = 0
         s = env.reset()
+        overhead = 0
         for j in range(args.test_episodes):
             a = actor.predict(s.reshape([1, actor.s_dim]))
-            # start = time.time()
+            start = time.time()
             a_k = K.dot(s)
-            # if param[:4] * s + param[-1] > 0:
             if np.abs(a - a_k) > param:
                 a = a_k
-                # overhead += time.time() - start
-                overhead += 1
+                overhead += time.time() - start
             s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
 
             if terminal and j < args.test_episodes:
-                    violations += 1
-        # print(np.log(violations+1) + overhead, overhead)
-        # return np.log(violations+1) + overhead
-        print(violations + overhead, overhead)
-        return violations + overhead
+                violations += 1
+        return np.log(violations+1) + overhead
 
     # Define the parameter bounds for optimization
-    param_bounds = [(-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)]  # Adjust the bounds according to your problem
-    param_bounds = [(-10.0, 10.0)]
+    param_bounds = [(0.0, 1.0)]  # Adjust the bounds according to your problem
 
     # Perform Bayesian optimization
     result = gp_minimize(objective, param_bounds, n_calls=10)  # Adjust the number of function evaluations (n_calls) as desired
-    print(result)
-    best_param = result.x
-    print(best_param)
+    best_param = result.x[0]
     syn_time = time.time() - start
 
-    real = 0
-    volations = 0
-    all_time = 0
-    overheads = 0
-    for i in tqdm(range(10)):
-        sys_time = time.time()
-        s = env.reset()
-        overhead = 0
-        for i in range(args.test_episodes):
-            a = actor.predict(s.reshape([1, actor.s_dim]))
-            # overhead = time.time()
-            a_k = K.dot(s)
-            if np.abs(a - a_k) > best_param:
-            # if best_param[:4] * s + best_param[-1] > 0:
-                a = a_k
-                overhead += 1
-            # overheads += time.time() - overhead
-            s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-
-            # a = K.dot(s)
-            # s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-            if terminal and i < args.test_episodes - 1:
-                
-                print(((s <= env.x_max).all() and (s >= env.x_min).all()))
-                print(r == env.bad_reward)
-                # print(s)
-                # print("terminal at {}".format(i))
-                volations += 1
-                break
-        overheads += overhead
-        all_time += time.time() - sys_time
-
-    print("syn_time:", syn_time)
-    print("time:", all_time)
-    print("overhead:", overheads)
-    print("rate:", overheads / all_time)
-    print("violations:", volations)
-
+    print(neural_network_performance(env, actor))
+    print(linear_function_performance(env, K))

@@ -150,6 +150,23 @@ class Environment:
             xk = f(self.xk, uk)
 
         return xk
+    
+    def simulation_shadow(self, xk, uk, coffset=None):
+        def f(x, u):
+            return self.A.dot(x) + self.B.dot(u)
+
+        if (uk > self.u_max).all():
+            uk = self.u_max
+        elif (uk < self.u_min).all():
+            uk = self.u_min
+
+        if self.continuous:
+            xk = xk + self.timestep * (f(xk, uk)) \
+            if coffset is None else xk + self.timestep * (f(xk, uk) + coffset)
+        else:
+            xk = f(xk, uk)
+
+        return xk
 
 
 #Environment for Polynomial Systems

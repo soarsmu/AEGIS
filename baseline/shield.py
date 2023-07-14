@@ -616,7 +616,8 @@ class Shield(object):
     fail_list = []
     self.shield_count = 0
     combo_remain = 0
-
+    shield_overhead = 0
+    all_time = time.time()
     for ep in xrange(test_ep):
       if x0 is not None:
         x = self.env.reset(x0)
@@ -626,7 +627,7 @@ class Shield(object):
       for i in xrange(test_step):
         u = np.reshape(self.actor.predict(np.reshape(np.array(x), \
             (1, self.actor.s_dim))), (self.actor.a_dim, 1))
-        
+        start = time.time()
         # safe or not
         if self.detactor(x, u, mode=mode, loss_compensation=loss_compensation) or (combo_remain > 0):
           if combo_remain == 0:
@@ -637,7 +638,7 @@ class Shield(object):
             print "!shield at step {}".format(i)
           
           combo_remain -= 1
-
+        shield_overhead += time.time() - start
         # step
         x, _, terminal = self.env.step(u)
 
@@ -654,15 +655,18 @@ class Shield(object):
           success_time += 1
 
       print "----epoch: {} ----".format(ep)
-      print 'initial state:\n', init_x, '\nterminal state:\n', x, '\nlast action:\n', self.env.last_u
+      # print 'initial state:\n', init_x, '\nterminal state:\n', x, '\nlast action:\n', self.env.last_u
       print "----step: {} ----".format(i)
-  
+    print(shield_overhead)
+    all_time = time.time() - all_time
+    print(all_time)
+    # print 'Success: {}, Fail: {}'.format(success_time, fail_time)
+    # print '#############Fail List:###############'
+    # for (i, e) in fail_list:
+    #   print 'initial state:\n{}\nend state: \n{}\n----'.format(i, e)
     print 'Success: {}, Fail: {}'.format(success_time, fail_time)
-    print '#############Fail List:###############'
-    for (i, e) in fail_list:
-      print 'initial state:\n{}\nend state: \n{}\n----'.format(i, e)
-    print 'Success: {}, Fail: {}'.format(success_time, fail_time)
-    print 'shield times: {}, shield ratio: {}'.format(self.shield_count, float(self.shield_count)/(test_ep*test_step))
+    print("Shield overhead: {}".format(shield_overhead/all_time))
+    # print 'shield times: {}, shield ratio: {}'.format(self.shield_count, float(self.shield_count)/(test_ep*test_step))
 
 
   @timeit

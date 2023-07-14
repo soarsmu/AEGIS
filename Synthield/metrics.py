@@ -5,9 +5,9 @@ import numpy as np
 
 
 def distance_between_linear_function_and_neural_network(env, actor, K, terminal_err=0.01, rounds=10, steps=500):
-	"""sum distance between the output of LF and NN 
+	"""sum distance between the output of LF and NN
 		until the state"s MSE*dim less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    actor (DDPG.ActorNetwork): actor
@@ -44,10 +44,10 @@ def distance_between_linear_function_and_neural_network(env, actor, K, terminal_
 	return float(distance)/sum_steps
 
 
-def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=500):
-	"""Measured by the steps NN took until 
+def neural_network_performance(env, actor, terminal_err=0.5, rounds=100, steps=500):
+	"""Measured by the steps NN took until
 	the sum of state absolute value less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    actor (DDPG.ActorNetwork): actor
@@ -55,6 +55,7 @@ def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=5
 	    rounds(int): rounds
 	    steps(int): steps
 	"""
+	# r_ = []
 	sum_steps = 0
 	temp_env_ter_err = env.terminal_err
 	env.terminal_err = terminal_err
@@ -69,20 +70,21 @@ def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=5
 				success_rounds -= 1
 			if terminal:
 				break
+			# r_.append(abs(r))
 			sum_steps += 1
 			u = actor.predict(np.reshape(np.array(xk), (1, actor.s_dim)))
 			env.step(u)
-
+	# print(min(r_))
 	env.terminal_err = temp_env_ter_err
 	if success_rounds == 0:
 		return steps+1
 
 	return float(sum_steps)/success_rounds
 
-def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500):
-	"""Measured by the steps LF took until 
+def linear_function_performance(env, K, terminal_err=0.5, rounds=100, steps=500):
+	"""Measured by the steps LF took until
 	the sum of state absolute value less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    K (numpy.matrix): coefficient of LF
@@ -90,6 +92,7 @@ def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500
 	    rounds(int): rounds
 	    steps(int): steps
 	"""
+	# r_ = []
 	sum_steps = 0
 	temp_env_ter_err = env.terminal_err
 	env.terminal_err = terminal_err
@@ -99,16 +102,18 @@ def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500
 			xk, r, terminal = env.observation()
 			if terminal:
 				break
+			# r_.append(abs(r))
 			sum_steps += 1
-			u = K[:2].dot(xk) + K[2]
+			u = K.dot(xk)
 			env.step(u)
 
+	# print(min(r_))
 	env.terminal_err = temp_env_ter_err
 	return float(sum_steps)/rounds
 
 def timeit(func):
 	"""Record time a function runs with, print it to standard output
-	
+
 	Args:
 	    func (callable): The function measured
 	"""
@@ -126,7 +131,7 @@ def timeit(func):
 def find_boundary(x, x_max, x_min):
     """find if x is between x_max and x_min
     if not, extending x_max and x_min with x
-    
+
     Args:
         x (np.array): state
         x_max (np.array): state max values

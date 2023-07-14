@@ -394,14 +394,14 @@ def test(env, actor, args, actor_noise):
       elif i == args['test_episodes_len']-1:
         success_time += 1
     
-    print 'initial state:\n', init_s, '\nstate at terminal step:\n'.format(i), s, '\nlast action:\n', env.last_u
-    print "----terminal step: {} ----".format(i)
+    # print 'initial state:\n', init_s, '\nstate at terminal step:\n'.format(i), s, '\nlast action:\n', env.last_u
+    # print "----terminal step: {} ----".format(i)
 
   print 'Success: {}, Fail: {}'.format(success_time, fail_time)
 
-  print '#############Fail List:###############'
-  for (i, e) in fail_list:
-    print 'initial state: \n{}\nend state: \n{}\n----'.format(i, e)
+  # print '#############Fail List:###############'
+  # for (i, e) in fail_list:
+  #   print 'initial state: \n{}\nend state: \n{}\n----'.format(i, e)
 
 
 def DDPG(env, args, replay_buffer=None):

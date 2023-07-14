@@ -26,7 +26,7 @@ def bound_z3(K, A, B, init_range, safe_range, test_episodes=1):
 	x_dim = len(init_range)
 	x = [[Real("x_ref_%s[%s]" %(j, i)) for i in range(x_dim)] for j in range(test_episodes)]
 
-	s = Solver()	
+	s = Solver()
 
 	polynomial_expr = [K.dot(x_) for x_ in x]
 

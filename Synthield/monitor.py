@@ -13,7 +13,7 @@ from sklearn.neural_network import MLPClassifier
 
 logging.getLogger().setLevel(logging.INFO)
 
-def monitor_synthesis(actor, env, K, degree=3, test_episodes=500, train_size=100):
+def monitor_synthesis(actor, env, degree=2, test_episodes=500, train_size=100):
     safe_set = []
     unsafe_set = []
     while len(safe_set) < train_size or len(unsafe_set) < train_size:
@@ -21,7 +21,6 @@ def monitor_synthesis(actor, env, K, degree=3, test_episodes=500, train_size=100
         for i in range(test_episodes):
             s_last = s
             a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
-            a_K = K.dot(s)
             s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
             if terminal and i < test_episodes-1:
                 unsafe_set.append(np.reshape(np.array(s_last), (1, actor.s_dim)).squeeze())
@@ -52,12 +51,11 @@ def monitor_synthesis(actor, env, K, degree=3, test_episodes=500, train_size=100
     # print(train_set.shape, train_label.shape)
     # clf.fit(train_set, train_label)
 
-    # degree = 2  # Degree of the polynomial features
-    # poly_features = PolynomialFeatures(degree)
-    # model = make_pipeline(poly_features, LogisticRegression())
+    poly_features = PolynomialFeatures(degree)
+    model = make_pipeline(poly_features, LogisticRegression())
 
     # # Fit the model to the data
-    model = MLPClassifier(solver='sgd', alpha=1e-5,hidden_layer_sizes=(50,2), random_state=1)
+    # model = MLPClassifier(solver='sgd', alpha=1e-5,hidden_layer_sizes=(50,2), random_state=1)
     model.fit(train_set, train_label)
     print(model.score(test_set, test_label))
     print(model.predict(safe_set_test))
@@ -75,7 +73,7 @@ def monitor_synthesis(actor, env, K, degree=3, test_episodes=500, train_size=100
     #             real += 1
     #         elif not terminal and model.predict(np.reshape(np.array(s), (1, actor.s_dim))) == 0:
     #             unreal += 1
-                
+
     # print("real", real)
     # print("unreal", unreal)
 
@@ -114,8 +112,8 @@ if __name__ == "__main__":
     DDPG_args["test_episodes"] = args.test_episodes
     actor = DDPG(env, DDPG_args)
 
-    (intercept, coefficients, feature_names), model = monitor_synthesis(actor, env)
-    
+    model = monitor_synthesis(actor, env)
+
     actor.sess.close()
 
 

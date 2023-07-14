@@ -57,7 +57,7 @@ def pendulum(learning_method, number_of_rollouts, simulation_steps, learning_epo
              'model_path': train_dir+"retrained_model.chkp",
              'enable_test': nn_test, 
              'test_episodes': test_episodes,
-             'test_episodes_len': 1000}
+             'test_episodes_len': 5000}
   else:
     args = { 'actor_lr': 0.0001,
              'critic_lr': 0.001,
@@ -73,7 +73,7 @@ def pendulum(learning_method, number_of_rollouts, simulation_steps, learning_epo
              'model_path': train_dir+"model.chkp",
              'enable_test': nn_test, 
              'test_episodes': test_episodes,
-             'test_episodes_len': 1000}
+             'test_episodes_len': 5000}
 
   actor = DDPG(env, args)
   
@@ -85,7 +85,7 @@ def pendulum(learning_method, number_of_rollouts, simulation_steps, learning_epo
   shield = Shield(env, actor, model_path, force_learning=retrain_shield, debug=retrain_shield)
   shield.train_shield(learning_method, number_of_rollouts, simulation_steps, eq_err=0, explore_mag = 1.0, step_size = 1.0)
   if shield_test: 
-    shield.test_shield(test_episodes, 1000, mode="single")
+    shield.test_shield(test_episodes, 5000, mode="single")
 
   actor.sess.close()
 
