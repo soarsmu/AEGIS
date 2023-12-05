@@ -8,7 +8,7 @@ class Shield(object):
 
   def __init__(self, env, actor, model_path=None, force_learning=False, debug=False):
     """init
-    
+
     Args:
         env (Environment): environment
         actor (ActorNetwork): actor
@@ -34,10 +34,10 @@ class Shield(object):
     self.keep_increasing = False
 
   @timeit
-  def train_shield(self, learning_method, number_of_rollouts, simulation_steps, eq_err=1e-2, rewardf=None, testf=None, explore_mag = .04, step_size = .05, names=None, 
+  def train_shield(self, learning_method, number_of_rollouts, simulation_steps, eq_err=1e-2, rewardf=None, testf=None, explore_mag = .04, step_size = .05, names=None,
     coffset=None, bias=False, discretization=False, lqr_start=False, degree=4, without_nn_guide=False, enable_jit=False):
     """train shield
-    
+
     Args:
         learning_method (string): learning method string
         number_of_rollouts (int): number of rollouts
@@ -49,7 +49,7 @@ class Shield(object):
         explore_mag (float, optional): explore mag
         step_size (float, optional): step size
         names (None, optional): names of state
-    """ 
+    """
     # continuous
     if self.env.continuous:
       self.B_str_list = []
@@ -70,7 +70,7 @@ class Shield(object):
             if ((x < self.env.x_max).all() and (x > self.env.x_min).all()):
               return 0
             else:
-              return -1 
+              return -1
 
         def learning_oracle_continuous(x):
           self.K = learn_shield(self.env.A, self.env.B, self.env.Q, self.env.R, x, eq_err,\
@@ -88,7 +88,7 @@ class Shield(object):
 
         #Iteratively search polcies that can cover all initial states
         '''
-        Fixme: the verification approach does not consider the case under which x_min and x_max 
+        Fixme: the verification approach does not consider the case under which x_min and x_max
         '''
         def verification_oracle_continuous(x, initial_size, Theta, K):
           #Theta and K is useless here but required by the API
@@ -112,8 +112,8 @@ class Shield(object):
             initSOSPoly = []
             init_cnstr = []
             for i in range(self.env.state_dim):
-              init.append("init" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.s_min[i,0]) + ")*(" + str(self.env.s_max[i,0]) + "-x[" + str(i+1) + "])")    
-            for i in range(self.env.state_dim):    
+              init.append("init" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.s_min[i,0]) + ")*(" + str(self.env.s_max[i,0]) + "-x[" + str(i+1) + "])")
+            for i in range(self.env.state_dim):
               initSOSPoly.append("@variable m Zinit" + str(i+1) + " SOSPoly(Z)")
             for i in range(self.env.state_dim):
               init_cnstr.append(" - Zinit" + str(i+1) + "*init" + str(i+1))
@@ -121,8 +121,8 @@ class Shield(object):
             for i in range(self.env.state_dim):
               l = x[i,0] - initial_size[i]
               h = x[i,0] + initial_size[i]
-              init.append("init" + str(self.env.state_dim+i+1) + " = (x[" + str(i+1) + "] - (" + str(l) + "))*((" + str(h) + ")-x[" + str(i+1) + "])")    
-            for i in range(self.env.state_dim):    
+              init.append("init" + str(self.env.state_dim+i+1) + " = (x[" + str(i+1) + "] - (" + str(l) + "))*((" + str(h) + ")-x[" + str(i+1) + "])")
+            for i in range(self.env.state_dim):
               initSOSPoly.append("@variable m Zinit" + str(self.env.state_dim+i+1) + " SOSPoly(Z)")
             for i in range(self.env.state_dim):
               init_cnstr.append(" - Zinit" + str(self.env.state_dim+i+1) + "*init" + str(self.env.state_dim+i+1))
@@ -148,15 +148,15 @@ class Shield(object):
                   unsafe_x_max = self.env.x_max[j]
                   for i in range(self.env.state_dim):
                     if unsafe_x_min[i, 0] != np.NINF and unsafe_x_max[i, 0] != np.inf:
-                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")    
+                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")
                       unsafeSOSPoly.append("@variable m Zunsafe" + str(i+1) + " SOSPoly(Z)")
                       unsafe_query += " - Zunsafe" + str(i+1) + "*unsafe" + str(i+1)
                     elif unsafe_x_min[i, 0] != np.NINF:
-                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")    
+                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")
                       unsafeSOSPoly.append("@variable m Zunsafe" + str(i+1) + " SOSPoly(Z)")
                       unsafe_query += " - Zunsafe" + str(i+1) + "*unsafe" + str(i+1)
-                    elif unsafe_x_max[i, 0] != np.inf: 
-                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")    
+                    elif unsafe_x_max[i, 0] != np.inf:
+                      unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(unsafe_x_min[i,0]) + ")*(" + str(unsafe_x_max[i,0]) + "-x[" + str(i+1) + "])")
                       unsafeSOSPoly.append("@variable m Zunsafe" + str(i+1) + " SOSPoly(Z)")
                       unsafe_query += " - Zunsafe" + str(i+1) + "*unsafe" + str(i+1)
                   if unsafe_query != "":
@@ -165,16 +165,16 @@ class Shield(object):
               for i in range(self.env.state_dim):
                 mid = (self.env.x_min[i, 0] + self.env.x_max[i, 0]) / 2
                 radium = self.env.x_max[i, 0] - mid
-                unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(mid) + ")^2 - " + str(pow(radium, 2)))    
+                unsafe.append("unsafe" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(mid) + ")^2 - " + str(pow(radium, 2)))
                 unsafeSOSPoly.append("@variable m Zunsafe" + str(i+1) + " SOSPoly(Z)")
                 unsafe_cnstr.append(" - Zunsafe" + str(i+1) + "*unsafe" + str(i+1))
              # Now we have init, unsafe and sysdynamics for verification
             sos = genSOSContinuousAsDiscreteMultipleUnsafes(
-                        self.env.timestep, self.env.state_dim, ",".join(dxdt(Acl)), "\n".join(init), "\n".join(unsafe), 
+                        self.env.timestep, self.env.state_dim, ",".join(dxdt(Acl)), "\n".join(init), "\n".join(unsafe),
                         "\n".join(initSOSPoly), "\n".join(unsafeSOSPoly), "".join(init_cnstr), unsafe_cnstr, degree=degree)
             verified = verifySOS(writeSOS("SOS.jl", sos), False, 900)
             print verified
-            
+
             if verified.split("#")[0].find("Optimal") >= 0:
               # returns Verified and the inductive invariant
               return True, verified.split("#")[1]
@@ -246,13 +246,13 @@ class Shield(object):
             self.O_inf_list.append(self.O_inf)
             initial_range = np.array([x-initial_size.reshape(len(initial_size), 1), x+initial_size.reshape(len(initial_size), 1)])
             self.initial_range_list.append(initial_range)
-          return (ce is None)  
+          return (ce is None)
 
         Theta = (self.env.s_min, self.env.s_max)
         result = verify_controller_z3(x0, Theta, verification_oracle_discrete, learning_oracle_discrete, draw_oracle_discrete, continuous=False)
-        print ("Shield synthesis result: {}".format(result))  
+        print ("Shield synthesis result: {}".format(result))
         if result:
-          self.save_shield(os.path.split(self.model_path)[0])        
+          self.save_shield(os.path.split(self.model_path)[0])
       else:
         self.load_shield(os.path.split(self.model_path)[0], enable_jit)
 
@@ -260,10 +260,10 @@ class Shield(object):
 
 
   @timeit
-  def train_polysys_shield(self, learning_method, number_of_rollouts, simulation_steps, eq_err=1e-2, 
+  def train_polysys_shield(self, learning_method, number_of_rollouts, simulation_steps, eq_err=1e-2,
         explore_mag = .04, step_size = .05, names=None, coffset=None, bias=False, degree=4, aggressive=False, without_nn_guide=False, enable_jit=False):
     """train shield
-    
+
     Args:
         learning_method (string): learning method string
         number_of_rollouts (int): number of rollouts
@@ -275,18 +275,18 @@ class Shield(object):
         explore_mag (float, optional): explore mag
         step_size (float, optional): step size
         names (None, optional): names of state
-    """ 
+    """
 
-    """ 
+    """
     Additional arguments in line 2 of the function signature:
-    polyf:                describe polynomial system dynamics in python 
+    polyf:                describe polynomial system dynamics in python
     polyf_to_str(K):      describe polynomial system dynamics in string
-    
+
     rewardf               describe polynomial system reward function
     testf                 describe polynomial system test function
 
-    unsafe_string():      describe polynomial unsafe conditions in string    
-    """ 
+    unsafe_string():      describe polynomial unsafe conditions in string
+    """
     self.B_str_list = []
     self.B_list = []
     self.last_B_result = []
@@ -320,8 +320,8 @@ class Shield(object):
         initSOSPoly = []
         init_cnstr = []
         for i in range(self.env.state_dim):
-          init.append("init" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.s_min[i,0]) + ")*(" + str(self.env.s_max[i,0]) + "-x[" + str(i+1) + "])")    
-        for i in range(self.env.state_dim):    
+          init.append("init" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.s_min[i,0]) + ")*(" + str(self.env.s_max[i,0]) + "-x[" + str(i+1) + "])")
+        for i in range(self.env.state_dim):
           initSOSPoly.append("@variable m Zinit" + str(i+1) + " SOSPoly(Z)")
         for i in range(self.env.state_dim):
           init_cnstr.append(" - Zinit" + str(i+1) + "*init" + str(i+1))
@@ -329,12 +329,12 @@ class Shield(object):
         for i in range(self.env.state_dim):
           l = x[i,0] - initial_size[i]
           h = x[i,0] + initial_size[i]
-          init.append("init" + str(self.env.state_dim+i+1) + " = (x[" + str(i+1) + "] - (" + str(l) + "))*((" + str(h) + ")-x[" + str(i+1) + "])")    
-        for i in range(self.env.state_dim):    
+          init.append("init" + str(self.env.state_dim+i+1) + " = (x[" + str(i+1) + "] - (" + str(l) + "))*((" + str(h) + ")-x[" + str(i+1) + "])")
+        for i in range(self.env.state_dim):
           initSOSPoly.append("@variable m Zinit" + str(self.env.state_dim+i+1) + " SOSPoly(Z)")
         for i in range(self.env.state_dim):
           init_cnstr.append(" - Zinit" + str(self.env.state_dim+i+1) + "*init" + str(self.env.state_dim+i+1))
-        
+
         #Specs for unsafe condions
         unsafes = self.env.unsafe_property()
         unsafe = []
@@ -354,9 +354,9 @@ class Shield(object):
         if (self.env.bound_x_min is not None and self.env.bound_x_max is not None):
           for i in range(self.env.state_dim):
             if (self.env.bound_x_min[i,0] is not None and self.env.bound_x_max[i,0] is not None):
-              bound.append("bound" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.bound_x_min[i,0]) + ")*(" + str(self.env.bound_x_max[i,0]) + "-x[" + str(i+1) + "])")    
+              bound.append("bound" + str(i+1) + " = (x[" + str(i+1) + "] - " + str(self.env.bound_x_min[i,0]) + ")*(" + str(self.env.bound_x_max[i,0]) + "-x[" + str(i+1) + "])")
           for i in range(self.env.state_dim):
-            if (self.env.bound_x_min[i,0] is not None and self.env.bound_x_max[i,0] is not None):    
+            if (self.env.bound_x_min[i,0] is not None and self.env.bound_x_max[i,0] is not None):
               boundSOSPoly.append("@variable m Zbound" + str(i+1) + " SOSPoly(Z)")
           for i in range(self.env.state_dim):
             if (self.env.bound_x_min[i,0] is not None and self.env.bound_x_max[i,0] is not None):
@@ -369,13 +369,13 @@ class Shield(object):
         if (self.env.disturbance_x_min is not None and self.env.disturbance_x_max is not None):
           for i in range(self.env.state_dim):
             if (self.env.disturbance_x_min[i,0] is not None and self.env.disturbance_x_max[i,0] is not None):
-              disturbance.append("disturbance" + str(i+1) + " = (d[" + str(i+1) + "] - " + str(self.env.disturbance_x_min[i,0]) + ")*(" + str(self.env.disturbance_x_max[i,0]) + "-d[" + str(i+1) + "])")    
+              disturbance.append("disturbance" + str(i+1) + " = (d[" + str(i+1) + "] - " + str(self.env.disturbance_x_min[i,0]) + ")*(" + str(self.env.disturbance_x_max[i,0]) + "-d[" + str(i+1) + "])")
           for i in range(self.env.state_dim):
-            if (self.env.disturbance_x_min[i,0] is not None and self.env.disturbance_x_max[i,0] is not None):    
+            if (self.env.disturbance_x_min[i,0] is not None and self.env.disturbance_x_max[i,0] is not None):
               disturbanceSOSPoly.append("@variable m Zdisturbance" + str(i+1) + " SOSPoly(D)")
           for i in range(self.env.state_dim):
             if (self.env.disturbance_x_min[i,0] is not None and self.env.disturbance_x_max[i,0] is not None):
-              disturbance_cnstr.append(" - Zdisturbance" + str(i+1) + "*disturbance" + str(i+1)) 
+              disturbance_cnstr.append(" - Zdisturbance" + str(i+1) + "*disturbance" + str(i+1))
 
         # Now we have init, unsafe and sysdynamics for verification
         sos = None
@@ -439,12 +439,12 @@ class Shield(object):
       print "load barrier from " + model_path + "/shield.model"
       self.K_list = [K for K in loadK(model_path+"/K.model.npy")]
       print "load K from "+model_path+"/K.model.npy"
-      self.initial_range_list = [initr for initr in loadK(model_path+"/initial_range.model.npy")] 
+      self.initial_range_list = [initr for initr in loadK(model_path+"/initial_range.model.npy")]
       print "load initial range to "+model_path+"/initial_range.model.npy"
     else:
       self.K_list = [K for K in loadK(model_path+"/K.model.npy")]
       print "load K from "+model_path+"/K.model.npy"
-      self.initial_range_list = [initr for initr in loadK(model_path+"/initial_range.model.npy")] 
+      self.initial_range_list = [initr for initr in loadK(model_path+"/initial_range.model.npy")]
       print "load initial range to "+model_path+"/initial_range.model.npy"
       for K in self.K_list:
           O_inf = verify_controller(np.asarray(self.env.A), np.asarray(self.env.B), np.asarray(K), self.env.x_min, self.env.x_max, self.env.u_min, self.env.u_max)
@@ -465,7 +465,7 @@ class Shield(object):
       if self.debug:
         print "select list", select_list
     elif (len(self.initial_range_list) == 1):
-      i == 0    
+      i == 0
     else:
       print "Error: No shield available!"
       assert (False)
@@ -482,7 +482,7 @@ class Shield(object):
 
   def detactor(self, x, u, mode="single", loss_compensation=0.0, increase_step=-1):
     """detact if there are dangerous state in furture
-    
+
     Args:
         x: current state
         u: current action
@@ -491,7 +491,7 @@ class Shield(object):
         loss_compensation (float, optional): The compensation for loss in calculating barrier
         increase_step (int, optional): if B's value keep increase this step, call shield until the vale stop increasing,
                                        now only support the single mode.
-    
+
     Returns:
         Bool: True -> call shield
               False -> call neural network
@@ -565,7 +565,7 @@ class Shield(object):
           lowboundaries = np.array([i[0] for i in self.initial_range_list])
           upboundaries = np.array([i[1] for i in self.initial_range_list])
           self.last_O_inf_result = [np.logical_not((self.env.x0>low).all()*(self.env.x0<high).all()) for low, high in zip(lowboundaries, upboundaries)]
-          
+
         for O_inf in self.O_inf_list:
           res = not O_inf.contains(xk)
           current_O_inf_result.append(res)
@@ -584,12 +584,12 @@ class Shield(object):
 
   def call_shield(self, x, mute=False):
     """call shield
-    
+
     Args:
         x : current state
         mute (bool, optional): print !shield or not
-    
-    Returns:  
+
+    Returns:
         shield action
     """
     u = self.K.dot(x)
@@ -598,12 +598,12 @@ class Shield(object):
     self.shield_count += 1
 
     return u
-      
+
 
   @timeit
   def test_shield(self, test_ep=1, test_step=5000, x0=None, mode="single", loss_compensation=0, shield_combo=1, mute=False):
     """test if shield works
-    
+
     Args:
         test_ep (int, optional): test episodes
         test_step (int, optional): test step in each episode
@@ -617,6 +617,7 @@ class Shield(object):
     self.shield_count = 0
     combo_remain = 0
     shield_overhead = 0
+    calls = 0
     all_time = time.time()
     for ep in xrange(test_ep):
       if x0 is not None:
@@ -635,8 +636,9 @@ class Shield(object):
 
           u = self.call_shield(x, mute=mute)
           if not mute:
+            calls += 1
             print "!shield at step {}".format(i)
-          
+
           combo_remain -= 1
         shield_overhead += time.time() - start
         # step
@@ -650,7 +652,7 @@ class Shield(object):
             fail_time += 1
             fail_list.append((init_x, x))
           break
-        
+
         if i == test_step-1:
           success_time += 1
 
@@ -660,6 +662,7 @@ class Shield(object):
     print(shield_overhead)
     all_time = time.time() - all_time
     print(all_time)
+    print(calls)
     # print 'Success: {}, Fail: {}'.format(success_time, fail_time)
     # print '#############Fail List:###############'
     # for (i, e) in fail_list:
@@ -672,7 +675,7 @@ class Shield(object):
   @timeit
   def shield_boundary(self, sample_ep=500, sample_step=100):
     """sample to find the state bound of shield
-    
+
     Args:
         sample_ep (int, optional): epsoides
         sample_step (int, optional): step in each epsoide
@@ -712,7 +715,7 @@ class Shield(object):
 import re
 def barrier_certificate_str2func(bc_str, vars_num, enable_jit=False):
   """transform julia barrier string to function
-  
+
   Args:
       bc_str (str): string
       vars_num (int): the dimension number of state
@@ -747,7 +750,7 @@ def barrier_certificate_str2func(bc_str, vars_num, enable_jit=False):
 
 def barrier_certificate_str2z3(bc_str, vars_num):
   """transform julia barrier string to what z3 and python can understand
-  
+
   Args:
       bc_str (str): string
   """

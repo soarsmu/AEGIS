@@ -22,14 +22,15 @@ from skopt import gp_minimize
 from skopt.space import Real
 from pympc.control.controllers import ModelPredictiveController
 from z3verify import bound_z3
-from skopt import gp_minimize
 from sklearn.linear_model import LinearRegression
+from ES import evolution_policy
+from linearization import compute_jacobians
 
 logging.getLogger().setLevel(logging.INFO)
 
 def refine(env, K, ce, test_episodes):
-    epsilon = 1e-4
-    learning_rate = 1e-3
+    epsilon = 1e-9
+    learning_rate = 30
     s = env.reset(np.array(ce).reshape([-1, 1]))
 
     for _ in range(test_episodes):
@@ -77,6 +78,10 @@ if __name__ == "__main__":
     K_list = []
 
     start = time.time()
+    # x_eq = np.array([[0], [0]])
+    # u_eq = np.array([[0]])
+    # A, B = compute_jacobians(env.polyf, x_eq, u_eq)
+
     S0 = Polyhedron.from_bounds(env.s_min, env.s_max)
     if env.continuous:
         Sys = LinearSystem.from_continuous(np.asarray(env.A), np.asarray(env.B), env.timestep)
@@ -84,34 +89,76 @@ if __name__ == "__main__":
         Sys = LinearSystem(np.asarray(env.A), np.asarray(env.B))
     P, K = Sys.solve_dare(env.Q, env.R)
     K = np.asarray(K)
-    X = Polyhedron.from_bounds(env.x_min, env.x_max)
-    U = Polyhedron.from_bounds(env.u_min, env.u_max)
-    D = X.cartesian_product(U)
-    O_inf = Sys.mcais(K, D)
-    O_inf_list.append(O_inf)
-    K_list.append(K)
+    n_states = actor.s_dim
+    n_actions = actor.a_dim
+    syn_policy = evolution_policy(env, actor, n_states, n_actions, 100)
+    print(syn_policy, K)
 
-    ce = S0.is_included_in_with_ce(O_inf)
-    while ce is not None:
-        flag = True
-        K = refine(env, K, ce, args.test_episodes)
-        K = np.asarray(K)
-        X = Polyhedron.from_bounds(env.x_min, env.x_max)
-        U = Polyhedron.from_bounds(env.u_min, env.u_max)
-        D = X.cartesian_product(U)
-        O_inf = Sys.mcais(K, D)
-        ce = S0.is_included_in_with_ce(O_inf)
-        s = env.reset(np.array(ce).reshape([-1, 1]))
-        for i in range(args.test_episodes):
+    # exit()
+
+    # print(K.dot(np.array([0.0, 0.0, 0.0, 0.0]).reshape([-1, 1])))
+    # s = env.reset(np.array([0.0, 0.0, 0.0, 0.0]).reshape([-1, 1]))
+    # s  = env.reset(np.array([0.5, 0.5]).reshape([-1, 1]))
+    for i in range(10):
+        s = env.reset()
+        print(s)
+        for i in range(5000):
             a = K.dot(s)
             s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
             if terminal and i < args.test_episodes - 1:
                 flag = False
                 print("terminal at {}".format(i))
-                print(s)
+                print("terminal at {}".format(i), s)
                 break
-        if flag:
-            break
+    # try:
+    #     print("ce", bound_z3(syn_policy, env.A, env.B, None, (env.s_min, env.s_max), (env.x_min, env.x_max), 12))
+    # except:
+    #     print("ce", bound_z3(syn_policy, None, None, env.polyf, (np.array(DDPG_args["initial_conditions"][0]).reshape([-1, 1]), np.array(DDPG_args["initial_conditions"][1]).reshape([-1, 1])), (np.array(DDPG_args["safe_spec"][0]).reshape([-1, 1]), np.array(DDPG_args["safe_spec"][1]).reshape([-1, 1])), 4))
+    # exit()
+
+    # n_states = actor.s_dim
+    # n_actions = actor.a_dim
+    # syn_policy = evolution_policy(env, actor, n_states, n_actions, 100)
+    # print(syn_policy, K)
+    X = Polyhedron.from_bounds(env.x_min, env.x_max)
+    U = Polyhedron.from_bounds(env.u_min, env.u_max)
+    D = X.cartesian_product(U)
+    O_inf = Sys.mcais(syn_policy, D)
+    O_inf_list.append(O_inf)
+    K_list.append(K)
+
+    print(O_inf.intersection(S0).A, O_inf.intersection(S0).b)
+    O_inf.plot()
+    ce = S0.is_included_in_with_ce(O_inf)
+    print(ce)
+    exit()
+    from metrics import neural_network_performance, linear_function_performance
+    print(neural_network_performance(env, actor))
+    print(linear_function_performance(env, syn_policy))
+    K = syn_policy
+    # exit()
+    # while ce is not None:
+    #     # flag = True
+    #     K = refine(env, K, ce, args.test_episodes)
+    #     K = np.asarray(K)
+    #     print(K)
+    #     X = Polyhedron.from_bounds(env.x_min, env.x_max)
+    #     U = Polyhedron.from_bounds(env.u_min, env.u_max)
+    #     D = X.cartesian_product(U)
+    #     O_inf = Sys.mcais(K, D)
+    #     ce = S0.is_included_in_with_ce(O_inf)
+    #     print(ce)
+    #     s = env.reset(np.array(ce).reshape([-1, 1]))
+    #     for i in range(args.test_episodes):
+    #         a = K.dot(s)
+    #         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+    #         if terminal and i < args.test_episodes - 1:
+    #             flag = False
+    #             print("terminal at {}".format(i))
+    #             print(s)
+    #             break
+        # if flag:
+        #     break
 
     from skopt import gp_minimize
 
@@ -142,7 +189,7 @@ if __name__ == "__main__":
     param_bounds = [(-10.0, 10.0)]
 
     # Perform Bayesian optimization
-    result = gp_minimize(objective, param_bounds, n_calls=10)  # Adjust the number of function evaluations (n_calls) as desired
+    result = gp_minimize(objective, param_bounds, n_calls=20)  # Adjust the number of function evaluations (n_calls) as desired
     print(result)
     best_param = result.x
     print(best_param)
@@ -151,38 +198,38 @@ if __name__ == "__main__":
     real = 0
     volations = 0
     all_time = 0
-    overheads = 0
+    total_overheads = 0
+    total_calls = 0
     for i in tqdm(range(10)):
         sys_time = time.time()
         s = env.reset()
-        overhead = 0
+        time_overhead = 0
+        calls = 0
         for i in range(args.test_episodes):
             a = actor.predict(s.reshape([1, actor.s_dim]))
-            # overhead = time.time()
+            start = time.time()
             a_k = K.dot(s)
             if np.abs(a - a_k) > best_param:
-            # if best_param[:4] * s + best_param[-1] > 0:
                 a = a_k
-                overhead += 1
-            # overheads += time.time() - overhead
+                calls += 1
+            time_overhead += time.time() - start
             s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
 
-            # a = K.dot(s)
-            # s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
             if terminal and i < args.test_episodes - 1:
-                
-                print(((s <= env.x_max).all() and (s >= env.x_min).all()))
-                print(r == env.bad_reward)
+                # print(((s <= env.x_max).all() and (s >= env.x_min).all()))
+                # print(r == env.bad_reward)
                 # print(s)
                 # print("terminal at {}".format(i))
                 volations += 1
                 break
-        overheads += overhead
+        total_overheads += time_overhead
+        total_calls += calls
         all_time += time.time() - sys_time
 
     print("syn_time:", syn_time)
     print("time:", all_time)
-    print("overhead:", overheads)
-    print("rate:", overheads / all_time)
+    print("overhead:", total_overheads)
+    print("rate:", total_overheads / all_time)
+    print("total calls:", total_calls)
     print("violations:", volations)
 

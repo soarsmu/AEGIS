@@ -150,7 +150,7 @@ class Environment:
             xk = f(self.xk, uk)
 
         return xk
-    
+
     def simulation_shadow(self, xk, uk, coffset=None):
         def f(x, u):
             return self.A.dot(x) + self.B.dot(u)

@@ -1,30 +1,31 @@
-import numpy as np
-from scipy.linalg import solve_continuous_are
-from skopt import gp_minimize
+from z3 import *
 
-# Define system matrices
-A = np.array([[1, 1], [0, 1]])  # State matrix
-B = np.array([[0], [1]])  # Control matrix
+# Create Z3 variables for the state
+x, y = Reals('x y')
 
-# Define the cost function
-def lqr_cost(params):
-    Q = np.array([[params[0], 0], [0, params[1]]])  # State cost
-    R = np.array([[params[2]]])  # Control cost
-    P = solve_continuous_are(A, B, Q, R)
-    return np.trace(P)
+# Define the polyhedron constraints (box constraint)
+polyhedron_constraints = [And(x >= -1, x <= 1, y >= -1, y <= 1)]
 
-# Define the bounds for Q and R
-bounds = [(0.1, 10.0), (0.1, 10.0), (0.1, 10.0)]
+# Create a solver instance
+solver = Solver()
 
-# Perform Bayesian optimization
-result = gp_minimize(lqr_cost, bounds, n_calls=20)
+# Add constraints for the polyhedron
+solver.add(polyhedron_constraints)
 
-# Optimal values
-optimal_values = result.x
-optimal_Q = np.array([[optimal_values[0], 0], [0, optimal_values[1]]])
-optimal_R = np.array([[optimal_values[2]]])
+# Check satisfiability to find the maximal constraint-admissible invariant set
+while solver.check() == sat:
+    # Get a model
+    model = solver.model()
 
-# Optimal cost
-optimal_cost = result.fun
+    # Extract values for x and y from the model
+    x_val = model[x].as_decimal(3)
+    y_val = model[y].as_decimal(3)
 
-print("Optimal Q: {}".format(optimal_Q))
+    # Block the current solution
+    solver.add(Or(x != x_val, y != y_val))
+
+    # Print the current solution
+    print("x =", x_val, "y =", y_val)
+
+# The loop terminates when no more points in the invariant set are found
+print("Computation of the maximal constraint-admissible invariant set complete.")

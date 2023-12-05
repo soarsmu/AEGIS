@@ -44,7 +44,7 @@ def distance_between_linear_function_and_neural_network(env, actor, K, terminal_
 	return float(distance)/sum_steps
 
 
-def neural_network_performance(env, actor, terminal_err=0.5, rounds=100, steps=500):
+def neural_network_performance(env, actor, terminal_err=0.05, rounds=10, steps=500):
 	"""Measured by the steps NN took until
 	the sum of state absolute value less than terminal_err
 
@@ -68,6 +68,9 @@ def neural_network_performance(env, actor, terminal_err=0.5, rounds=100, steps=5
 			if r == env.bad_reward:
 				sum_steps -= s
 				success_rounds -= 1
+			if s == steps-1:
+				sum_steps -= s
+				success_rounds -= 1
 			if terminal:
 				break
 			# r_.append(abs(r))
@@ -76,12 +79,12 @@ def neural_network_performance(env, actor, terminal_err=0.5, rounds=100, steps=5
 			env.step(u)
 	# print(min(r_))
 	env.terminal_err = temp_env_ter_err
-	if success_rounds == 0:
-		return steps+1
+	# if success_rounds == 0:
+	# 	return steps+1
 
 	return float(sum_steps)/success_rounds
 
-def linear_function_performance(env, K, terminal_err=0.5, rounds=100, steps=500):
+def linear_function_performance(env, K, terminal_err=0.05, rounds=10, steps=5000):
 	"""Measured by the steps LF took until
 	the sum of state absolute value less than terminal_err
 
@@ -94,12 +97,19 @@ def linear_function_performance(env, K, terminal_err=0.5, rounds=100, steps=500)
 	"""
 	# r_ = []
 	sum_steps = 0
+	success_rounds = rounds
 	temp_env_ter_err = env.terminal_err
 	env.terminal_err = terminal_err
 	for i in range(rounds):
 		env.reset()
 		for s in range(steps):
 			xk, r, terminal = env.observation()
+			if r == env.bad_reward:
+				sum_steps -= s
+				success_rounds -= 1
+			if s == steps-1:
+				sum_steps -= s
+				success_rounds -= 1
 			if terminal:
 				break
 			# r_.append(abs(r))
@@ -109,7 +119,9 @@ def linear_function_performance(env, K, terminal_err=0.5, rounds=100, steps=500)
 
 	# print(min(r_))
 	env.terminal_err = temp_env_ter_err
-	return float(sum_steps)/rounds
+	# if success_rounds == 0:
+	# 	return steps+1
+	return float(sum_steps)/success_rounds
 
 def timeit(func):
 	"""Record time a function runs with, print it to standard output

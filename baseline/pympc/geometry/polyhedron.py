@@ -886,6 +886,7 @@ class Polyhedron(object):
         plt.xlabel(r'$x_' + str(residual_dimensions[0]+1) + '$')
         plt.ylabel(r'$x_' + str(residual_dimensions[1]+1) + '$')
         ax.autoscale_view()
+        plt.savefig('polyhedron.png')
 
         return
 

@@ -531,6 +531,7 @@ def mcais(A, X, verbose=False):
 
     # ensure convergence of the algorithm
     eig_max = np.max(np.absolute(np.linalg.eig(A)[0]))
+    print(eig_max)
     if eig_max > 1.:
         raise ValueError('unstable system, cannot derive maximal constraint-admissible set.')
     [nc, nx] = X.A.shape
