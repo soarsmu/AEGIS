@@ -24,8 +24,6 @@ docker run -it -v /path/to/aegis:/aegis aegis
 
 We provide the scripts to run the experiments of Aegis and the baseline VRL, which can be found in their respective directories, `aegis` and `baseline`, so that you can reproduce the results of our paper easily.
 
-Note that the checkpoint files of the neural policies can be found in the repository of VRL, which can be downloaded from [here](https://github.com/RU-Automated-Reasoning-Group/VRL_CodeReview/tree/master/ddpg_chkp).
-
 To run the experiments of Aegis, execute the following command:
 
 ```bash
@@ -45,6 +43,6 @@ bash run_test_1000ep_table_1.sh # Run the experiments for RQ1
 bash RQ23.sh # Run the experiments for RQ2 and RQ3
 ```
 
-The results of the experiments will be also stored in the `results` directory.
+The results of the experiments will be stored in the `results` directory.
 
 We hope the above instructions are helpful for you to reproduce the results of our paper. If you have any questions, please feel free to contact us.
