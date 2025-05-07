@@ -18,17 +18,42 @@
         "specification": "always[0,200] (a >= -0.3 and a <= 0.3 and b >= -0.5 and b <= 0.5 and c >= -0.3 and c <= 0.3 and d >= -0.5 and d <= 0.5)",
         "slice_spec": ["always[0,200] (a >= -0.3)", "always[0,200] (a <= 0.3)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)", "always[0,200] (c >= -0.3)", "always[0,200] (c <= 0.3)", "always[0,200] (d >= -0.5)", "always[0,200] (d <= 0.5)"],
         "var_map": {"a": 0, "b": 1, "c": 2, "d": 3},
-        "spec_lens": 8
+        "spec_lens": 8,
+        "param_bounds": [10.0, 12.0],
+        "stability_threshold": 3e-3
+    },
+    "cartpole_var":
+    {
+        "actor_lr": 0.0001,
+        "critic_lr": 0.001,
+        "actor_structure": [1000, 900, 800],
+        "critic_structure": [1200, 900],
+        "buffer_size": 1000000,
+        "gamma": 0.99,
+        "max_episode_len": 100,
+        "max_episodes": 1000,
+        "minibatch_size": 64,
+        "random_seed": 6553,
+        "tau": 0.005,
+        "model_path": "./checkpoints/perfect_model/cartpole/change_l/model.chkp",
+        "test_episodes_len": 5000,
+        "initial_conditions": [[-0.1, 0.1], [-0.1, 0.1], [-0.05, 0.05], [-0.05, 0.05]],
+        "specification": "always[0,200] (a >= -0.3 and a <= 0.3 and b >= -0.5 and b <= 0.5 and c >= -0.3 and c <= 0.3 and d >= -0.5 and d <= 0.5)",
+        "slice_spec": ["always[0,200] (a >= -0.3)", "always[0,200] (a <= 0.3)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)", "always[0,200] (c >= -0.3)", "always[0,200] (c <= 0.3)", "always[0,200] (d >= -0.5)", "always[0,200] (d <= 0.5)"],
+        "var_map": {"a": 0, "b": 1, "c": 2, "d": 3},
+        "spec_lens": 8,
+        "param_bounds": [1.0, 6.0],
+        "stability_threshold": 3e-3
     },
     "pendulum":
     {
         "actor_lr": 0.0001,
         "critic_lr": 0.001,
-        "actor_structure": [280, 240, 200],
-        "critic_structure": [240, 200],
+        "actor_structure": [1200, 900],
+        "critic_structure": [1000, 900, 800],
         "buffer_size": 1000000,
         "gamma": 0.99,
-        "max_episode_len": 100,
+        "max_episode_len": 500,
         "max_episodes": 1000,
         "minibatch_size": 64,
         "random_seed": 6553,
@@ -39,7 +64,55 @@
         "specification": "always[0,200] (a >= -0.5 and a <= 0.5 and b >= -0.5 and b <= 0.5)",
         "slice_spec": ["always[0,200] (a >= -0.5)", "always[0,200] (a <= 0.5)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)"],
         "var_map": {"a": 0, "b": 1},
-        "spec_lens": 4
+        "spec_lens": 4,
+        "param_bounds": [0.2, 1.0],
+        "stability_threshold": 0.04
+    },
+    "pendulum_var_1":
+    {
+        "actor_lr": 0.0001,
+        "critic_lr": 0.001,
+        "actor_structure": [1000, 900, 800],
+        "critic_structure": [1200, 900],
+        "buffer_size": 1000000,
+        "gamma": 0.99,
+        "max_episode_len": 500,
+        "max_episodes": 1000,
+        "minibatch_size": 64,
+        "random_seed": 6553,
+        "tau": 0.005,
+        "model_path": "./checkpoints/perfect_model/pendulum/change_l/model.chkp",
+        "test_episodes_len": 5000,
+        "initial_conditions": [[-0.35, 0.35], [-0.35, 0.35]],
+        "specification": "always[0,200] (a >= -0.5 and a <= 0.5 and b >= -0.5 and b <= 0.5)",
+        "slice_spec": ["always[0,200] (a >= -0.5)", "always[0,200] (a <= 0.5)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)"],
+        "var_map": {"a": 0, "b": 1},
+        "spec_lens": 4,
+        "param_bounds": [8.0, 9.0],
+        "stability_threshold": 0.04
+    },
+    "pendulum_var_2":
+    {
+        "actor_lr": 0.0001,
+        "critic_lr": 0.001,
+        "actor_structure": [1000, 900, 800],
+        "critic_structure": [1200, 900],
+        "buffer_size": 1000000,
+        "gamma": 0.99,
+        "max_episode_len": 500,
+        "max_episodes": 1000,
+        "minibatch_size": 64,
+        "random_seed": 6553,
+        "tau": 0.005,
+        "model_path": "./checkpoints/perfect_model/pendulum/change_m/model.chkp",
+        "test_episodes_len": 5000,
+        "initial_conditions": [[-0.35, 0.35], [-0.35, 0.35]],
+        "specification": "always[0,200] (a >= -0.5 and a <= 0.5 and b >= -0.5 and b <= 0.5)",
+        "slice_spec": ["always[0,200] (a >= -0.5)", "always[0,200] (a <= 0.5)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)"],
+        "var_map": {"a": 0, "b": 1},
+        "spec_lens": 4,
+        "param_bounds": [5.0, 9.0],
+        "stability_threshold": 0.04
     },
     "satellite":
     {
@@ -207,7 +280,9 @@
         "specification": "always[0,200] (a >= -1.0 and a <= 1.0 and b >= -1.0 and b <= 1.0)",
         "slice_spec": ["always[0,200] (a >= -1.0)", "always[0,200] (a <= 1.0)", "always[0,200] (b >= -1.0)", "always[0,200] (b <= 1.0)"],
         "var_map": {"a": 0, "b": 1},
-        "spec_lens": 4
+        "spec_lens": 4,
+        "param_bounds": [0.5, 1.0],
+        "stability_threshold": 5e-8
     },
     "self_driving":
     {
@@ -218,18 +293,44 @@
         "buffer_size": 1000000,
         "gamma": 0.99,
         "max_episode_len": 100,
-        "max_episodes": 20,
+        "max_episodes": 200,
         "minibatch_size": 64,
         "random_seed": 6553,
         "tau": 0.005,
-        "model_path": "./checkpoints/self_driving/final_model.chkp",
+        "model_path": "./checkpoints/self_driving/model.chkp",
         "test_episodes_len": 5000,
         "initial_conditions": [[-1.0, -0.78539815], [1.0, 0.78539815]],
         "safe_spec": [[-2.0, -1.5707963], [2.0, 1.5707963]],
         "specification": "always[0,200] (a > -2.0 and a < 2.0 and b >= -1.5707963 and b <= 1.5707963)",
         "slice_spec": ["always[0,200] (a > -2.0)", "always[0,200] (a < 2.0)", "always[0,200] (b >= -1.5707963)", "always[0,200] (b <= 1.5707963)"],
         "var_map": {"a": 0, "b": 1},
-        "spec_lens": 4
+        "spec_lens": 4,
+        "param_bounds": [1.0, 2.7],
+        "stability_threshold": 0.15
+    },
+    "self_driving_var":
+    {
+        "actor_lr": 0.0001,
+        "critic_lr": 0.001,
+        "actor_structure": [64, 64],
+        "critic_structure": [64, 64],
+        "buffer_size": 1000000,
+        "gamma": 0.99,
+        "max_episode_len": 100,
+        "max_episodes": 200,
+        "minibatch_size": 64,
+        "random_seed": 6553,
+        "tau": 0.005,
+        "model_path": "./checkpoints/perfect_model/selfdriving/64646464/final_model.chkp",
+        "test_episodes_len": 5000,
+        "initial_conditions": [[-1.0, -0.78539815], [1.0, 0.78539815]],
+        "safe_spec": [[-2.0, -1.5707963], [2.0, 1.5707963]],
+        "specification": "always[0,200] (a > -2.0 and a < 2.0 and b >= -1.5707963 and b <= 1.5707963)",
+        "slice_spec": ["always[0,200] (a > -2.0)", "always[0,200] (a < 2.0)", "always[0,200] (b >= -1.5707963)", "always[0,200] (b <= 1.5707963)"],
+        "var_map": {"a": 0, "b": 1},
+        "spec_lens": 4,
+        "param_bounds": [1.0, 2.7],
+        "stability_threshold": 0.15
     },
     "car_platoon_4":
     {
@@ -250,7 +351,9 @@
         "specification": "always[0,200] (a >= -2.0 and a <= 2.0 and b >= -0.5 and b <= 0.5 and c >= -0.35 and c <= 0.35 and d >= -0.5 and d <= 0.5 and e >= -1.0 and e <= 1.0 and f >= -0.5 and f <= 0.5 and g >= -1.0 and g <= 1.0)",
         "slice_spec": ["always[0,200] (a >= -2.0)", "always[0,200] (a <= 2.0)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)", "always[0,200] (c >= -0.35)", "always[0,200] (c <= 0.35)", "always[0,200] (d >= -0.5)", "always[0,200] (d <= 0.5)", "always[0,200] (e >= -1.0)", "always[0,200] (e <= 1.0)", "always[0,200] (f >= -0.5)", "always[0,200] (f <= 0.5)", "always[0,200] (g >= -1.0)", "always[0,200] (g <= 1.0)"],
         "var_map": {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6},
-        "spec_lens": 14
+        "spec_lens": 14,
+        "param_bounds": [[0.0, 0.2],[0.0, 0.2],[0.0, 0.2],[0.0, 0.2]],
+        "stability_threshold": 1e-7
     },
     "car_platoon_8":
     {
@@ -271,7 +374,9 @@
         "specification": "always[0,200] (a >= -2.0 and a <= 2.0 and b >= -0.5 and b <= 0.5 and c >= -1.0 and c <= 1.0 and d >= -0.5 and d <= 0.5 and e >= -1.0 and e <= 1.0 and f >= -0.5 and f <= 0.5 and g >= -1.0 and g <= 1.0 and h >= -0.5 and h <= 0.5 and i >= -1.0 and i <= 1.0 and j >= -0.5 and j <= 0.5 and k >= -1.0 and k <= 1.0 and l >= -0.5 and l <= 0.5 and m >= -1.0 and m <= 1.0 and n >= -0.5 and n <= 0.5 and o >= -1.0 and o <= 1.0)",
         "slice_spec": ["always[0,200] (a >= -2.0)", "always[0,200] (a <= 2.0)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)", "always[0,200] (c >= -1.0)", "always[0,200] (c <= 0.1)", "always[0,200] (d >= -0.5)", "always[0,200] (d <= 0.5)", "always[0,200] (e >= -1.0)", "always[0,200] (e <= 1.0)", "always[0,200] (f >= -0.5)", "always[0,200] (f <= 0.5)", "always[0,200] (g >= -1.0)", "always[0,200] (g <= 1.0)", "always[0,200] (h >= -0.5)", "always[0,200] (h <= 0.5)", "always[0,200] (i >= -1.0)", "always[0,200] (i <= 1.0)", "always[0,200] (j >= -0.5)", "always[0,200] (j <= 0.5)", "always[0,200] (k >= -1.0)", "always[0,200] (k <= 1.0)", "always[0,200] (l >= -0.5)", "always[0,200] (l <= 0.5)", "always[0,200] (m >= -1.0)", "always[0,200] (m <= 1.0)", "always[0,200] (n >= -0.5)", "always[0,200] (n <= 0.5)", "always[0,200] (o >= -1.0)", "always[0,200] (o <= 1.0)"],
         "var_map": {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7, "i": 8, "j": 9, "k": 10, "l": 11, "m": 12, "n": 13, "o": 14},
-        "spec_lens": 30
+        "spec_lens": 30,
+        "param_bounds": [[0.0, 0.1]],
+        "stability_threshold": 3e-3
     },
     "lane_keeping":
     {
@@ -292,7 +397,10 @@
         "specification": "always[0,200] (a > -0.9 and a < 0.9)",
         "slice_spec": ["always[0,200] (a > -0.9)", "always[0,200] (a < 0.9)"],
         "var_map": {"a": 0, "b": 1, "c": 2, "d": 3},
-        "spec_lens": 2
+        "spec_lens": 2,
+        "safe_spec": [[-0.9, -0.9, -0.9, -0.9], [0.9, 0.9, 0.9, 0.9]],
+        "param_bounds": [0.0, 2.7],
+        "stability_threshold": 0.15
     },
     "oscillator":
     {
@@ -313,6 +421,9 @@
         "specification": "always[0,200] (a < 0.05)",
         "slice_spec": ["always[0,200] (a < 0.05)"],
         "var_map": {"r": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7, "i": 8, "j": 9, "k": 10, "l": 11, "m": 12, "n": 13, "o": 14, "p": 15, "q": 16, "a": 17},
-        "spec_lens": 1
+        "spec_lens": 1,
+        "param_bounds": [0.0, 0.1],
+        "stability_threshold": 3e-3,
+        "safe_spec": [[0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05], [0.0, 0.05]]
     }
 }

@@ -598,6 +598,7 @@ class Shield(object):
     self.shield_count += 1
 
     return u
+  # from memory_profiler import profile
 
 
   @timeit
@@ -618,13 +619,21 @@ class Shield(object):
     combo_remain = 0
     shield_overhead = 0
     calls = 0
+    real_calls = 0
     all_time = time.time()
+
+    if self.env.x_max is None:
+      self.env.x_min = np.array([[-2.0],[-1.5707963]])
+      self.env.x_max = np.array([[2.0],[1.5707963]])
+    print(self.env.x_min, self.env.x_max)
     for ep in xrange(test_ep):
+
       if x0 is not None:
         x = self.env.reset(x0)
       else:
         x = self.env.reset()
       init_x = x
+
       for i in xrange(test_step):
         u = np.reshape(self.actor.predict(np.reshape(np.array(x), \
             (1, self.actor.s_dim))), (self.actor.a_dim, 1))
@@ -633,6 +642,33 @@ class Shield(object):
         if self.detactor(x, u, mode=mode, loss_compensation=loss_compensation) or (combo_remain > 0):
           if combo_remain == 0:
             combo_remain = shield_combo
+          s_next = x
+          a_next = u
+          try:
+            f = self.env.polyf
+          except:
+            def f(x, u):
+              return self.env.A.dot(x.reshape([self.env.state_dim, 1])) + self.env.B.dot(u.reshape([self.env.action_dim, 1]))
+
+          for j in xrange(test_step-i):
+
+            if not ((s_next <= self.env.x_max).all() and (s_next >= self.env.x_min).all()):
+              print(s_next, j)
+              real_calls += 1
+              break
+
+            if self.env.continuous:
+                s_next = s_next + self.env.timestep * (f(s_next, a_next))
+            else:
+                s_next = f(s_next, a_next)
+
+            a_next = self.actor.predict(s_next.reshape([1, self.actor.s_dim]))
+
+            if (a_next > self.env.u_max).all():
+                a_next = self.env.u_max
+            elif (a_next < self.env.u_min).all():
+                a_next = self.env.u_min
+
 
           u = self.call_shield(x, mute=mute)
           if not mute:
@@ -663,13 +699,14 @@ class Shield(object):
     all_time = time.time() - all_time
     print(all_time)
     print(calls)
+    print(real_calls)
     # print 'Success: {}, Fail: {}'.format(success_time, fail_time)
     # print '#############Fail List:###############'
     # for (i, e) in fail_list:
     #   print 'initial state:\n{}\nend state: \n{}\n----'.format(i, e)
     print 'Success: {}, Fail: {}'.format(success_time, fail_time)
     print("Shield overhead: {}".format(shield_overhead/all_time))
-    # print 'shield times: {}, shield ratio: {}'.format(self.shield_count, float(self.shield_count)/(test_ep*test_step))
+    print 'shield times: {}, shield ratio: {}'.format(self.shield_count, float(self.shield_count)/(test_ep*test_step))
 
 
   @timeit

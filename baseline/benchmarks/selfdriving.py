@@ -54,10 +54,10 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
 
   #sample an initial condition for system
   x0 = np.matrix([
-    [random.uniform(s_min[0, 0], s_max[0, 0])], 
+    [random.uniform(s_min[0, 0], s_max[0, 0])],
     [random.uniform(s_min[1, 0], s_max[1, 0])]
   ])
-  print ("Sampled initial state is:\n {}".format(x0))  
+  print ("Sampled initial state is:\n {}".format(x0))
 
   #reward functions
   Q = np.zeros((2,2), float)
@@ -84,13 +84,13 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
   def testf(x, u):
     if (unsafe_eval(x)):
       return -1
-    return 0 
+    return 0
 
   def random_test(f, K, simulation_steps, continuous=True, timestep=h):
     total_fails = 0
     for i in range(100):
       x0 = np.matrix([
-        [random.uniform(s_min[0, 0], s_max[0, 0])], 
+        [random.uniform(s_min[0, 0], s_max[0, 0])],
         [random.uniform(s_min[1, 0], s_max[1, 0])]
       ])
       reward = test_controller_helper (f, K, x0, simulation_steps, testf, continuous=True, timestep=h)
@@ -108,7 +108,7 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
     args = { 'actor_lr': 0.0001,
          'critic_lr': 0.001,
          'actor_structure': actor_structure,
-         'critic_structure': critic_structure, 
+         'critic_structure': critic_structure,
          'buffer_size': 1000000,
          'gamma': 0.99,
          'max_episode_len': 100,
@@ -117,14 +117,14 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
          'random_seed': 6553,
          'tau': 0.005,
          'model_path': train_dir+"retrained_model.chkp",
-         'enable_test': nn_test, 
+         'enable_test': nn_test,
          'test_episodes': test_episodes,
-         'test_episodes_len': 1000}
+         'test_episodes_len': 5000}
   else:
     args = { 'actor_lr': 0.0001,
          'critic_lr': 0.001,
          'actor_structure': actor_structure,
-         'critic_structure': critic_structure, 
+         'critic_structure': critic_structure,
          'buffer_size': 1000000,
          'gamma': 0.99,
          'max_episode_len': 100,
@@ -133,9 +133,9 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
          'random_seed': 6553,
          'tau': 0.005,
          'model_path': train_dir+"model.chkp",
-         'enable_test': nn_test, 
+         'enable_test': nn_test,
          'test_episodes': test_episodes,
-         'test_episodes_len': 1000}
+         'test_episodes_len': 5000}
   actor =  DDPG(env, args=args)
 
   model_path = os.path.split(args['model_path'])[0]+'/'
@@ -148,7 +148,7 @@ def selfdrive(learning_method, number_of_rollouts, simulation_steps, learning_ep
   shield = Shield(env, actor, model_path=model_path, force_learning=retrain_shield)
   shield.train_polysys_shield(learning_method, number_of_rollouts, simulation_steps, explore_mag = 0.04, step_size = 0.03, without_nn_guide=True)
   if shield_test:
-    shield.test_shield(test_episodes, 1000)
+    shield.test_shield(test_episodes, 5000)
 
   actor.sess.close()
 

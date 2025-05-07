@@ -72,32 +72,42 @@ if __name__ == "__main__":
     DDPG_args["enable_falsification"] = False
 
     DDPG_args["test_episodes"] = args.test_episodes
-    actor = DDPG(env, DDPG_args)    
+    actor = DDPG(env, DDPG_args)
 
-    volations = 0
-    all_time = time.time()
-    for i in tqdm(range(1000)):
-        s = env.reset()
-        for i in range(args.test_episodes):
-            a = actor.predict(s.reshape([1, actor.s_dim]))
-            # overhead = time.time()
-            # a_k = K.dot(s)
-            # if np.abs(a - a_k) > best_param:
-            #     a = a_k
-            # overheads += time.time() - overhead
-            s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
 
-            # a = K.dot(s)
-            # s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-            if terminal and i < args.test_episodes - 1:
-                # print(((s_next <= env.x_max).all() and (s_next >= env.x_min).all()))
-                # print(s)
-                volations += 1
-                break
-        all_time = time.time() - all_time
-        # print("time:", all_time)
-        # print("overhead:", overheads)
-        # print("rate:", overheads / all_time)
-        # print("real", real)
+    # from memory_profiler import profile
+    # @profile(precision=6)
+    def run():
+        total_rewards = 0
+        volations = 0
+        all_time = time.time()
+        for i in tqdm(range(20)):
+            s = env.reset()
+
+            for i in range(args.test_episodes):
+
+                a = actor.predict(s.reshape([1, actor.s_dim]))
+                # overhead = time.time()
+                # a_k = K.dot(s)
+                # if np.abs(a - a_k) > best_param:
+                #     a = a_k
+                # overheads += time.time() - overhead
+                s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+                total_rewards += r
+                # a = K.dot(s)
+                # s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+                if terminal and i < args.test_episodes - 1:
+                    # print(((s_next <= env.x_max).all() and (s_next >= env.x_min).all()))
+                    # print(s)
+                    volations += 1
+                    break
+            all_time = time.time() - all_time
+    # print("time:", all_time)
+    # print("overhead:", overheads)
+    # print("rate:", overheads / all_time)
+    # print("real", real)
+        print("total_rewards:", total_rewards)
+        return volations
+    volations = run()
     print("violations:", volations)
-        
+

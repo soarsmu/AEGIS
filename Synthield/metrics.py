@@ -43,8 +43,11 @@ def distance_between_linear_function_and_neural_network(env, actor, K, terminal_
 		return 1
 	return float(distance)/sum_steps
 
+import matplotlib.pyplot as plt
 
-def neural_network_performance(env, actor, terminal_err=0.05, rounds=10, steps=500):
+# quadcopter 3e-3, cartpole 1e-3
+
+def neural_network_performance(env, actor, terminal_err=1e-3, rounds=10, steps=5000):
 	"""Measured by the steps NN took until
 	the sum of state absolute value less than terminal_err
 
@@ -55,36 +58,62 @@ def neural_network_performance(env, actor, terminal_err=0.05, rounds=10, steps=5
 	    rounds(int): rounds
 	    steps(int): steps
 	"""
-	# r_ = []
+	total_rewards = 0
 	sum_steps = 0
-	temp_env_ter_err = env.terminal_err
-	env.terminal_err = terminal_err
-	success_rounds = rounds
+	steps_list = []
 
 	for i in range(rounds):
 		env.reset()
 		for s in range(steps):
 			xk, r, terminal = env.observation()
-			if r == env.bad_reward:
-				sum_steps -= s
-				success_rounds -= 1
-			if s == steps-1:
-				sum_steps -= s
-				success_rounds -= 1
-			if terminal:
-				break
-			# r_.append(abs(r))
-			sum_steps += 1
 			u = actor.predict(np.reshape(np.array(xk), (1, actor.s_dim)))
-			env.step(u)
-	# print(min(r_))
-	env.terminal_err = temp_env_ter_err
-	# if success_rounds == 0:
-	# 	return steps+1
+			xk_next,_ , _ = env.step(u)
+			if (abs(xk_next - xk)<terminal_err).all():
+				sum_steps += s+1
+				steps_list.append(s+1)
+				break
+			total_rewards += r
+	print("average reward:", total_rewards/rounds)
+	return float(sum_steps)/rounds, steps_list
 
-	return float(sum_steps)/success_rounds
+def combo_function_performance(args, env, actor, K, monitor_params, terminal_err=1e-3, rounds=10, steps=5000):
+	"""Measured by the steps NN took until
+	the sum of state absolute value less than terminal_err
 
-def linear_function_performance(env, K, terminal_err=0.05, rounds=10, steps=5000):
+	Args:
+	    env (DDPG.Enviorment): Enviorment
+	    actor (DDPG.ActorNetwork): actor
+	    terminal_err(float): when terminal
+	    rounds(int): rounds
+	    steps(int): steps
+	"""
+	total_rewards = 0
+	sum_steps = 0
+	steps_list = []
+
+	for i in range(rounds):
+		env.reset()
+		for s in range(steps):
+			xk, r, terminal = env.observation()
+			u = actor.predict(np.reshape(np.array(xk), (1, actor.s_dim)))
+			uk = K.dot(xk)
+			if args.env == "car_platoon_4" or args.env == "car_platoon_8":
+				if (np.abs(uk.reshape(1, -1)[0] - u[0]) > monitor_params).all():
+					u = uk
+			else:
+				if np.abs(u - uk) > monitor_params:
+					u = uk
+
+			xk_next,_ , _ = env.step(u)
+			if (abs(xk_next - xk)<terminal_err).all():
+				sum_steps += s+1
+				steps_list.append(s+1)
+				break
+			total_rewards += r
+	print("average reward:", total_rewards/rounds)
+	return float(sum_steps)/rounds, steps_list
+
+def linear_function_performance(env, K, terminal_err=1e-3, rounds=10, steps=5000):
 	"""Measured by the steps LF took until
 	the sum of state absolute value less than terminal_err
 
@@ -95,33 +124,23 @@ def linear_function_performance(env, K, terminal_err=0.05, rounds=10, steps=5000
 	    rounds(int): rounds
 	    steps(int): steps
 	"""
-	# r_ = []
+	total_rewards = 0
 	sum_steps = 0
-	success_rounds = rounds
-	temp_env_ter_err = env.terminal_err
-	env.terminal_err = terminal_err
+	steps_list = []
 	for i in range(rounds):
 		env.reset()
 		for s in range(steps):
 			xk, r, terminal = env.observation()
-			if r == env.bad_reward:
-				sum_steps -= s
-				success_rounds -= 1
-			if s == steps-1:
-				sum_steps -= s
-				success_rounds -= 1
-			if terminal:
-				break
-			# r_.append(abs(r))
-			sum_steps += 1
 			u = K.dot(xk)
-			env.step(u)
+			xk_next,_ , _ = env.step(u)
+			if (abs(xk_next - xk)<terminal_err).all():
+				sum_steps += s+1
+				steps_list.append(s+1)
+				break
+			total_rewards += r
 
-	# print(min(r_))
-	env.terminal_err = temp_env_ter_err
-	# if success_rounds == 0:
-	# 	return steps+1
-	return float(sum_steps)/success_rounds
+	print("average reward:", total_rewards/rounds)
+	return float(sum_steps)/rounds, steps_list
 
 def timeit(func):
 	"""Record time a function runs with, print it to standard output

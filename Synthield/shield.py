@@ -12,9 +12,11 @@ from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from scipy.linalg import solve_continuous_are
 import time
+from metrics import neural_network_performance, linear_function_performance, combo_function_performance
+
 from envs import ENV_CLASSES
 import numpy as np
-from monitor import monitor_synthesis
+from monitor import monitor_synthesis, monitor_synthesis_2
 import scipy
 from pympc.geometry.polyhedron import Polyhedron
 from pympc.dynamics.discrete_time_systems import LinearSystem
@@ -23,18 +25,78 @@ from skopt.space import Real
 from pympc.control.controllers import ModelPredictiveController
 from z3verify import bound_z3
 from sklearn.linear_model import LinearRegression
-from ES import evolution_policy
+from ES import evolution_policy, refine
 from linearization import compute_jacobians
 
 logging.getLogger().setLevel(logging.INFO)
 
-def refine(env, K, ce, test_episodes):
-    epsilon = 1e-9
-    learning_rate = 30
-    s = env.reset(np.array(ce).reshape([-1, 1]))
+def synthesis(env, actor, test_episodes):
 
-    for _ in range(test_episodes):
+    S0 = Polyhedron.from_bounds(env.s_min, env.s_max)
+    if env.continuous:
+        Sys = LinearSystem.from_continuous(np.asarray(env.A), np.asarray(env.B), env.timestep)
+    else:
+        Sys = LinearSystem(np.asarray(env.A), np.asarray(env.B))
+
+    _, K = Sys.solve_dare(env.Q, env.R)
+    K = np.asarray(K)
+    print(K)
+    print(env.A)
+    K = finetune(env, K, actor, 5)
+
+    O_inf = inf_synthesis(env, Sys, K)
+
+    ce = S0.is_included_in_with_ce(O_inf)
+
+    while ce is not None:
+        K_new = refine(env, actor, K, ce, test_episodes)
+        K_new = np.asarray(K_new)
+        if not (K == K_new).all():
+            K = K_new
+            O_inf = inf_synthesis(env, Sys, K)
+            ce = S0.is_included_in_with_ce(O_inf)
+        else:
+            ce = None
+
+    return O_inf, K
+
+
+def inf_synthesis(env, Sys, K):
+    X = Polyhedron.from_bounds(env.x_min, env.x_max)
+    U = Polyhedron.from_bounds(env.u_min, env.u_max)
+    D = X.cartesian_product(U)
+    O_inf = Sys.mcais(K, D)
+    return O_inf
+
+
+def spurious_check(env, K, ce, test_episodes):
+    flag = False
+
+    s = env.reset(np.array(ce).reshape([-1, 1]))
+    for i in range(test_episodes):
         a = K.dot(s)
+        s, r, terminal = env.step(a.reshape(env.action_dim, 1))
+        if terminal and i < test_episodes - 1:
+            flag = True
+            break
+
+    if flag:
+        return ce
+
+    return None
+
+
+def refine(env, actor, K, ce, test_episodes):
+    epsilon = 1e-5
+    learning_rate = 1e-3
+
+    ce = spurious_check(env, K, ce, test_episodes)
+    if ce is None:
+        return K
+
+    s = env.reset(np.array(ce).reshape([-1, 1]))
+    for _ in range(test_episodes):
+        a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
 
         perturbation = np.zeros_like(K)
         for i in range(K.shape[0]):
@@ -48,10 +110,43 @@ def refine(env, K, ce, test_episodes):
         a_minus = K_minus.dot(s)
 
         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-        gradients = (env.reward(s, a_plus) - env.reward(s, a_minus)) / (2 * epsilon)
+
+        distance_plus = - np.sum((a_plus - a).squeeze()**2) + env.reward(s, a_plus)
+        distance_minus = - np.sum((a_minus - a).squeeze()**2) + env.reward(s, a_minus)
+
+        gradients = (distance_plus - distance_minus) / (2 * epsilon)
         K -= learning_rate * gradients
+
     return K
 
+
+def finetune(env, K, actor, test_episodes):
+    epsilon = 1e-5
+    learning_rate = 1e-3
+    s = env.reset()
+    for _ in range(test_episodes):
+        a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
+
+        perturbation = np.zeros_like(K)
+        for i in range(K.shape[0]):
+            for j in range(K.shape[1]):
+                perturbation[i, j] = epsilon
+
+        K_plus = K + perturbation
+        K_minus = K - perturbation
+
+        a_plus = K_plus.dot(s)
+        a_minus = K_minus.dot(s)
+
+        s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+
+        distance_plus = - np.sum((a_plus - a).squeeze()**2)
+        distance_minus = - np.sum((a_minus - a).squeeze()**2)
+
+        gradients = (distance_plus - distance_minus) / (2 * epsilon)
+        K -= learning_rate * gradients
+
+    return K
 
 if __name__ == "__main__":
 
@@ -59,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", default="cartpole", type=str, help="The selected environment.")
     parser.add_argument("--do_eval", action="store_true", help="Test RL controller")
     parser.add_argument("--test_episodes", default=5000, help="test_episodes", type=int)
+    parser.add_argument("--rounds", default=100, help="rounds", type=int)
     parser.add_argument("--do_retrain", action="store_true", help="retrain RL controller")
     args = parser.parse_args()
 
@@ -73,163 +169,158 @@ if __name__ == "__main__":
     DDPG_args["enable_falsification"] = False
 
     DDPG_args["test_episodes"] = args.test_episodes
-    actor = DDPG(env, DDPG_args)
-    O_inf_list = []
-    K_list = []
 
-    start = time.time()
-    # x_eq = np.array([[0], [0]])
-    # u_eq = np.array([[0]])
-    # A, B = compute_jacobians(env.polyf, x_eq, u_eq)
+    if env.x_min is None:
+        x_eq = np.zeros([env.state_dim, 1])
+        u_eq = np.zeros([env.action_dim, 1])
 
-    S0 = Polyhedron.from_bounds(env.s_min, env.s_max)
-    if env.continuous:
-        Sys = LinearSystem.from_continuous(np.asarray(env.A), np.asarray(env.B), env.timestep)
+        env.A, env.B = compute_jacobians(env.polyf, x_eq, u_eq)
+        env.x_min = np.array(DDPG_args["safe_spec"][0]).reshape([-1, 1])
+        env.x_max = np.array(DDPG_args["safe_spec"][1]).reshape([-1, 1])
+
+    stability_threshold = DDPG_args["stability_threshold"]
+
+    if args.env == "car_platoon_4" or args.env == "car_platoon_8":
+        param_bounds = [tuple(param) for param in DDPG_args["param_bounds"]]
     else:
-        Sys = LinearSystem(np.asarray(env.A), np.asarray(env.B))
-    P, K = Sys.solve_dare(env.Q, env.R)
-    K = np.asarray(K)
-    n_states = actor.s_dim
-    n_actions = actor.a_dim
-    syn_policy = evolution_policy(env, actor, n_states, n_actions, 100)
-    print(syn_policy, K)
+        param_bounds = [tuple(DDPG_args["param_bounds"])]
 
+    actor = DDPG(env, DDPG_args)
+    from DDPG import actor_boundary
+    # max_boundary, min_boundary = actor_boundary(env, K, actor)
+
+
+
+    logging.info("Synthesizing Controller & Invariant...")
+    start = time.time()
+
+    O_inf, K = synthesis(env, actor, args.test_episodes)
+
+    logging.info("Sythesized Controller: {}".format(K))
+    logging.info("Sythesized Invariant (left): {}".format(O_inf.A))
+    logging.info("Sythesized Invariant (right): {}".format(O_inf.b))
+
+    # max_boundary, min_boundary = actor_boundary(env, K, actor)
+    # param_bounds = [(min_boundary.item(), max_boundary.item())]
+    # logging.info("Parameter Bounds: {}".format(param_bounds))
     # exit()
 
-    # print(K.dot(np.array([0.0, 0.0, 0.0, 0.0]).reshape([-1, 1])))
-    # s = env.reset(np.array([0.0, 0.0, 0.0, 0.0]).reshape([-1, 1]))
-    # s  = env.reset(np.array([0.5, 0.5]).reshape([-1, 1]))
-    for i in range(10):
-        s = env.reset()
-        print(s)
-        for i in range(5000):
-            a = K.dot(s)
-            s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-            if terminal and i < args.test_episodes - 1:
-                flag = False
-                print("terminal at {}".format(i))
-                print("terminal at {}".format(i), s)
-                break
-    # try:
-    #     print("ce", bound_z3(syn_policy, env.A, env.B, None, (env.s_min, env.s_max), (env.x_min, env.x_max), 12))
-    # except:
-    #     print("ce", bound_z3(syn_policy, None, None, env.polyf, (np.array(DDPG_args["initial_conditions"][0]).reshape([-1, 1]), np.array(DDPG_args["initial_conditions"][1]).reshape([-1, 1])), (np.array(DDPG_args["safe_spec"][0]).reshape([-1, 1]), np.array(DDPG_args["safe_spec"][1]).reshape([-1, 1])), 4))
-    # exit()
+    logging.info("Testing Stability...")
+    stability_rl, steps_rl = neural_network_performance(env, actor, stability_threshold)
+    stability_K, steps_K = linear_function_performance(env, K, stability_threshold)
 
-    # n_states = actor.s_dim
-    # n_actions = actor.a_dim
-    # syn_policy = evolution_policy(env, actor, n_states, n_actions, 100)
-    # print(syn_policy, K)
-    X = Polyhedron.from_bounds(env.x_min, env.x_max)
-    U = Polyhedron.from_bounds(env.u_min, env.u_max)
-    D = X.cartesian_product(U)
-    O_inf = Sys.mcais(syn_policy, D)
-    O_inf_list.append(O_inf)
-    K_list.append(K)
 
-    print(O_inf.intersection(S0).A, O_inf.intersection(S0).b)
-    O_inf.plot()
-    ce = S0.is_included_in_with_ce(O_inf)
-    print(ce)
-    exit()
-    from metrics import neural_network_performance, linear_function_performance
-    print(neural_network_performance(env, actor))
-    print(linear_function_performance(env, syn_policy))
-    K = syn_policy
-    # exit()
-    # while ce is not None:
-    #     # flag = True
-    #     K = refine(env, K, ce, args.test_episodes)
-    #     K = np.asarray(K)
-    #     print(K)
-    #     X = Polyhedron.from_bounds(env.x_min, env.x_max)
-    #     U = Polyhedron.from_bounds(env.u_min, env.u_max)
-    #     D = X.cartesian_product(U)
-    #     O_inf = Sys.mcais(K, D)
-    #     ce = S0.is_included_in_with_ce(O_inf)
-    #     print(ce)
-    #     s = env.reset(np.array(ce).reshape([-1, 1]))
-    #     for i in range(args.test_episodes):
-    #         a = K.dot(s)
-    #         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
-    #         if terminal and i < args.test_episodes - 1:
-    #             flag = False
-    #             print("terminal at {}".format(i))
-    #             print(s)
-    #             break
-        # if flag:
-        #     break
+    logging.info("Reinforcement Learning Policy's Steps to Stability: {}".format(stability_rl))
+    logging.info("Linear Function Shield's Steps to Stability: {}".format(stability_K))
+    from stats import VD_A, mannwhitneyu
 
-    from skopt import gp_minimize
+    logging.info("Sythesizing Monitor...")
+    # monitor_params = monitor_synthesis(param_bounds, env, actor, K, 500)
+    monitor_params = monitor_synthesis_2(args.env, param_bounds, env, actor, K, 200)
 
-    def objective(param):
-        violations = 0
-        overhead = 0
-        s = env.reset()
-        for j in range(args.test_episodes):
-            a = actor.predict(s.reshape([1, actor.s_dim]))
-            # start = time.time()
-            a_k = K.dot(s)
-            # if param[:4] * s + param[-1] > 0:
-            if np.abs(a - a_k) > param:
-                a = a_k
-                # overhead += time.time() - start
-                overhead += 1
-            s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+    stability_combo, steps_combo = combo_function_performance(args, env, actor, K, monitor_params, stability_threshold)
 
-            if terminal and j < args.test_episodes:
-                    violations += 1
-        # print(np.log(violations+1) + overhead, overhead)
-        # return np.log(violations+1) + overhead
-        print(violations + overhead, overhead)
-        return violations + overhead
-
-    # Define the parameter bounds for optimization
-    param_bounds = [(-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)]  # Adjust the bounds according to your problem
-    param_bounds = [(-10.0, 10.0)]
-
-    # Perform Bayesian optimization
-    result = gp_minimize(objective, param_bounds, n_calls=20)  # Adjust the number of function evaluations (n_calls) as desired
-    print(result)
-    best_param = result.x
-    print(best_param)
+    logging.info("Combo Function Shield's Steps to Stability: {}".format(stability_combo))
     syn_time = time.time() - start
+    # print(env.A)
+    # print(env.B)
+    # print(K)
+    # print(env.reset())
+    logging.info("Monitoring Parameter: {}".format(monitor_params))
+    # exit()
+    # from memory_profiler import profile
 
-    real = 0
-    volations = 0
-    all_time = 0
-    total_overheads = 0
-    total_calls = 0
-    for i in tqdm(range(10)):
-        sys_time = time.time()
-        s = env.reset()
-        time_overhead = 0
-        calls = 0
-        for i in range(args.test_episodes):
-            a = actor.predict(s.reshape([1, actor.s_dim]))
-            start = time.time()
-            a_k = K.dot(s)
-            if np.abs(a - a_k) > best_param:
-                a = a_k
-                calls += 1
-            time_overhead += time.time() - start
-            s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+    def check_necessary_condition(args, env, actor, a, rest_time):
+        s = env.xk
 
-            if terminal and i < args.test_episodes - 1:
-                # print(((s <= env.x_max).all() and (s >= env.x_min).all()))
-                # print(r == env.bad_reward)
-                # print(s)
-                # print("terminal at {}".format(i))
-                volations += 1
-                break
-        total_overheads += time_overhead
-        total_calls += calls
-        all_time += time.time() - sys_time
+        if args.env == "self_driving":
+            f = env.polyf
+        else:
+            def f(x, u):
+                return env.A.dot(x.reshape([env.state_dim, 1])) + env.B.dot(u.reshape([env.action_dim, 1]))
 
-    print("syn_time:", syn_time)
-    print("time:", all_time)
-    print("overhead:", total_overheads)
-    print("rate:", total_overheads / all_time)
-    print("total calls:", total_calls)
-    print("violations:", volations)
+        for i in range(rest_time):
+            if not ((s <= env.x_max).all() and (s >= env.x_min).all()):
+                return True
+
+            if env.continuous:
+                s = s + env.timestep * (f(s, a))
+            else:
+                s = f(s, a)
+
+            a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim)))
+
+            if not args.env == "self_driving":
+                if (a > env.u_max).all():
+                    a = env.u_max
+                elif (a < env.u_min).all():
+                    a = env.u_min
+
+        return False
+
+    # @profile(precision=6)
+    def shield_policy():
+
+        volations = 0
+        all_time = 0
+        total_overheads = 0
+        total_calls = 0
+        total_rewards = 0
+        real_calls = 0
+        for i in tqdm(range(args.rounds)):
+            sys_time = time.time()
+            s = env.reset()
+            time_overhead = 0
+            calls = 0
+            # flag = False
+            for i in range(args.test_episodes):
+
+                a = actor.predict(s.reshape([1, actor.s_dim]))
+                start = time.time()
+                ncp_a = a
+                # if args.env == "car_platoon_4" or args.env == "car_platoon_8":
+                #     if (np.abs(a_k.reshape(1, -1)[0] - a[0]) > monitor_params).all():
+                #         a = a_k
+                #         calls += 1
+                # else:
+                a_k = K.dot(s)
+
+                if np.abs(a - a_k) > monitor_params:
+                    a = a_k
+                    calls += 1
+                    if check_necessary_condition(args, env, actor, ncp_a, args.test_episodes - i):
+                        real_calls += 1
+                        # flag = True
+
+                time_overhead += time.time() - start
+                s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
+                total_rewards += r
+                # if terminal and i < args.test_episodes - 1:
+                if terminal:
+                    if np.sum(np.power(env.xk, 2)) > env.terminal_err:
+                        # success_time += 1
+                        volations += 1
+                    break
+            total_overheads += time_overhead
+            total_calls += calls
+            all_time += time.time() - sys_time
+
+        print("Total rewards: {}".format(total_rewards))
+        return volations, all_time, total_overheads, total_calls, real_calls
+
+    # from pympler import tracker
+
+    # tr = tracker.SummaryTracker()
+
+    volations, all_time, total_overheads, total_calls, real_calls = shield_policy()
+    # tr.print_diff()
+
+    logging.info("Synthesis time: {}".format(syn_time))
+    logging.info("System Time: {}".format(all_time))
+    logging.info("Overhead: {}".format(total_overheads))
+    logging.info("Overhead Rate: {}".format(total_overheads / all_time))
+    logging.info("Total calls: {}".format(total_calls))
+    logging.info("Violations: {}".format(volations))
+    logging.info("Real calls: {}".format(real_calls))
+
 

@@ -13,6 +13,10 @@ from .car_platoon_4 import car_platoon_4
 from .car_platoon_8 import car_platoon_8
 from .lane_keeping import lane_keeping
 from .oscillator import oscillator
+from .cartpole_var import cartpole_var
+from .pendulum_var_1 import pendulum_var_1
+from .pendulum_var_2 import pendulum_var_2
+from .self_driving_var import self_driving_var
 
 ENV_CLASSES = {"cartpole": cartpole,
                "pendulum": pendulum,
@@ -28,5 +32,9 @@ ENV_CLASSES = {"cartpole": cartpole,
                "car_platoon_4": car_platoon_4,
                "car_platoon_8": car_platoon_8,
                "lane_keeping": lane_keeping,
-               "oscillator": oscillator
+               "oscillator": oscillator,
+               "cartpole_var": cartpole_var,
+                "pendulum_var_1": pendulum_var_1,
+                "pendulum_var_2": pendulum_var_2,
+                "self_driving_var": self_driving_var
                }

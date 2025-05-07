@@ -11,7 +11,7 @@ class ReplayBuffer(object):
 
   def __init__(self, buffer_size, random_seed=123):
     """
-    The right side of the deque contains the most recent experiences 
+    The right side of the deque contains the most recent experiences
     """
     self.buffer_size = buffer_size
     self.count = 0
@@ -108,7 +108,7 @@ class ActorNetwork(object):
             net = tflearn.fully_connected(net, layer_nueral_number)
             net = tflearn.layers.normalization.batch_normalization(net)
             net = tflearn.activations.relu(net)
-        
+
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
@@ -272,7 +272,7 @@ def train(sess, env, args, actor, critic, actor_noise, restorer, replay_buffer=N
     if replay_buffer is None:
       replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
-    # Needed to enable BatchNorm. 
+    # Needed to enable BatchNorm.
     # This hurts the performance on Pendulum but could be useful in other environments.
     # tflearn.is_training(True)
 
@@ -351,13 +351,13 @@ def train(sess, env, args, actor, critic, actor_noise, restorer, replay_buffer=N
                 restorer.save(sess, args['model_path'])
                 print 'sess has been stored to', args['model_path']
                 last_reward = reward_mean
-            
+
             count = 0
             del reward_list[:]
 
         print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i, (ep_ave_max_q / float(j+1))))
-        # print "x\n", env.xk 
-        # print "u\n", env.last_u 
+        # print "x\n", env.xk
+        # print "u\n", env.last_u
 
 
     print 'min reward:', last_reward
@@ -368,7 +368,7 @@ def train(sess, env, args, actor, critic, actor_noise, restorer, replay_buffer=N
     restorer.save(sess, final_model)
     print 'sess has been saved to', final_model
 
-                    
+
 @timeit
 def test(env, actor, args, actor_noise):
   fail_time = 0
@@ -393,7 +393,7 @@ def test(env, actor, args, actor_noise):
           break
       elif i == args['test_episodes_len']-1:
         success_time += 1
-    
+
     # print 'initial state:\n', init_s, '\nstate at terminal step:\n'.format(i), s, '\nlast action:\n', env.last_u
     # print "----terminal step: {} ----".format(i)
 
@@ -429,7 +429,7 @@ def DDPG(env, args, replay_buffer=None):
     if tf.train.checkpoint_exists(args['model_path']):
         restorer.restore(sess, args['model_path'])
         print 'sess has been restored from', args['model_path']
-    
+
     actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
     train(sess, env, args, actor, critic, actor_noise, restorer, replay_buffer)
@@ -438,7 +438,7 @@ def DDPG(env, args, replay_buffer=None):
         test(env, actor, args, actor_noise)
 
     return actor
-    
+
 @timeit
 def actor_boundary(env, actor, epsoides=1000, steps=100):
   max_boundary = np.zeros([env.state_dim, 1])
@@ -453,7 +453,7 @@ def actor_boundary(env, actor, epsoides=1000, steps=100):
       max_boundary, min_boundary = metrics.find_boundary(s, max_boundary, min_boundary)
       if terminal:
         break
-    
+
   print 'max_boundary:\n{}\nmin_boundary:\n{}'.format(max_boundary, min_boundary)
 
 @timeit
@@ -485,7 +485,7 @@ def random_search_for_init_buffer(env, args, target, trance_number, rewardf, max
               env.xk = xk_list.pop()
               action_list.pop()
               r = r_list.pop()
-            else: 
+            else:
               env.reset()
               xk, r, terminal = env.observation()
               xk_list = [env.xk]

@@ -582,7 +582,6 @@ class Polyhedron(object):
             f = -A2[i:i+1,:].T
             sol = linear_program(f, P1.A, P1.b)
             penetration = - sol['min'] - b2[i]
-            print(penetration)
             if penetration > tol:
                 included = False
                 break

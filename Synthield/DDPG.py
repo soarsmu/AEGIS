@@ -491,21 +491,23 @@ def get_params(env, args, replay_buffer=None):
     return FullyConnected_W_params, FullyConnected_b_params, BatchNormalization_beta_params, BatchNormalization_gamma_params, actor
 
 @timeit
-def actor_boundary(env, actor, epsoides=1000, steps=100):
-    max_boundary = np.zeros([env.state_dim, 1])
-    min_boundary = np.zeros([env.state_dim, 1])
+def actor_boundary(env, K, actor, epsoides=100, steps=100):
+    max_boundary = np.zeros([env.action_dim, 1])
+    min_boundary = np.ones([env.action_dim, 1])
 
     for ep in range(epsoides):
         s = env.reset()
-        max_boundary, min_boundary = metrics.find_boundary(s, max_boundary, min_boundary)
         for i in range(steps):
             a = actor.predict(np.reshape(np.array(s), (1, actor.s_dim))) #+ actor_noise()
+            a_k = K.dot(s)
+            diff = np.abs(a - a_k)
             s, _, terminal = env.step(a.reshape(actor.a_dim, 1))
-            max_boundary, min_boundary = metrics.find_boundary(s, max_boundary, min_boundary)
+            max_boundary, min_boundary = metrics.find_boundary(diff, max_boundary, min_boundary)
             if terminal:
                 break
 
     print("max_boundary:\n{}\nmin_boundary:\n{}".format(max_boundary, min_boundary))
+    return max_boundary, min_boundary
 
 @timeit
 def random_search_for_init_buffer(env, args, target, trance_number, rewardf, max_count=5000, terminal_err=1, repeat_time=100, buffer_size=1000000):

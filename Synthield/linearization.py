@@ -24,9 +24,9 @@ def compute_jacobians(f, x_eq, u_eq):
 
     return A, B
 
-# Equilibrium point: Car stationary, Pole upright
-x_eq = np.array([[0], [0]])
-u_eq = np.array([[0]])
+# # Equilibrium point: Car stationary, Pole upright
+# x_eq = np.array([[0], [0]])
+# u_eq = np.array([[0]])
 
 # System dynamics definition
 def f(x, u):
@@ -35,11 +35,11 @@ def f(x, u):
     delta[1, 0] = u[0, 0]
     return delta
 
-# Compute Jacobian matrices A and B
-A, B = compute_jacobians(f, x_eq, u_eq)
+# # Compute Jacobian matrices A and B
+# A, B = compute_jacobians(f, x_eq, u_eq)
 
-# Display the results
-print("Jacobian Matrix A:")
-print(A)
-print("\nJacobian Matrix B:")
-print(B)
+# # Display the results
+# print("Jacobian Matrix A:")
+# print(A)
+# print("\nJacobian Matrix B:")
+# print(B)

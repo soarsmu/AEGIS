@@ -8,9 +8,11 @@ from envs import ENV_CLASSES
 
 logging.getLogger().setLevel(logging.INFO)
 
-def evolution_policy(env, policy, n_states, n_actions, len_episodes, n_population=50, n_iterations=50, sigma=0.1, alpha=0.05):
+def evolution_policy(env, policy, K, n_states, n_actions, len_episodes, n_population=10, n_iterations=5, sigma=0.1, alpha=0.05):
 
-    coffset = np.random.randn(n_actions, n_states)
+    # coffset = np.random.randn(n_actions, n_states)
+    coffset = K
+
     for iter in tqdm(range(n_iterations)):
         noise = np.random.randn(int(n_population/2), n_actions, n_states)
         noise = np.vstack((noise, -noise))

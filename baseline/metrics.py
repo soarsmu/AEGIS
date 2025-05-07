@@ -1,10 +1,11 @@
 import numpy as np
 import time
+import logging
 
 def distance_between_linear_function_and_neural_network(env, actor, K, terminal_err=0.01, rounds=10, steps=500):
-	"""sum distance between the output of LF and NN 
+	"""sum distance between the output of LF and NN
 		until the state's MSE*dim less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    actor (DDPG.ActorNetwork): actor
@@ -42,9 +43,9 @@ def distance_between_linear_function_and_neural_network(env, actor, K, terminal_
 
 
 def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=500):
-	"""Measured by the steps NN took until 
+	"""Measured by the steps NN took until
 	the sum of state absolute value less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    actor (DDPG.ActorNetwork): actor
@@ -53,6 +54,7 @@ def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=5
 	    steps(int): steps
 	"""
 	sum_steps = 0
+	total_rewards = 0
 	temp_env_ter_err = env.terminal_err
 	env.terminal_err = terminal_err
 	success_rounds = rounds
@@ -69,17 +71,18 @@ def neural_network_performance(env, actor, terminal_err=0.01, rounds=10, steps=5
 			sum_steps += 1
 			u = actor.predict(np.reshape(np.array(xk), (1, actor.s_dim)))
 			env.step(u)
+			total_rewards += r
 
 	env.terminal_err = temp_env_ter_err
 	if success_rounds == 0:
 		return steps+1
-
+	logging.info("average reward: {}".format(total_rewards/float(success_rounds)))
 	return float(sum_steps)/success_rounds
 
 def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500):
-	"""Measured by the steps LF took until 
+	"""Measured by the steps LF took until
 	the sum of state absolute value less than terminal_err
-	
+
 	Args:
 	    env (DDPG.Enviorment): Enviorment
 	    K (numpy.matrix): coefficient of LF
@@ -87,6 +90,7 @@ def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500
 	    rounds(int): rounds
 	    steps(int): steps
 	"""
+	total_rewards = 0
 	sum_steps = 0
 	temp_env_ter_err = env.terminal_err
 	env.terminal_err = terminal_err
@@ -99,13 +103,15 @@ def linear_function_performance(env, K, terminal_err=0.01, rounds=100, steps=500
 			sum_steps += 1
 			u = K.dot(xk)
 			env.step(u)
+			total_rewards += r
 
+	logging.info("average reward: {}".format(total_rewards/float(rounds)))
 	env.terminal_err = temp_env_ter_err
 	return float(sum_steps)/rounds
 
 def timeit(func):
 	"""Record time a function runs with, print it to standard output
-	
+
 	Args:
 	    func (callable): The function measured
 	"""
@@ -123,7 +129,7 @@ def timeit(func):
 def find_boundary(x, x_max, x_min):
     """find if x is between x_max and x_min
     if not, extending x_max and x_min with x
-    
+
     Args:
         x (np.array): state
         x_max (np.array): state max values

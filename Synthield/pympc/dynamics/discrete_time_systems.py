@@ -547,7 +547,8 @@ def mcais(A, X, verbose=False):
     t = 1
     convergence = False
     while not convergence:
-
+        # if t > 80:
+        #     break
         # solve one LP per facet
         J = X.A.dot(np.linalg.matrix_power(A,t))
         residuals = []
@@ -566,7 +567,6 @@ def mcais(A, X, verbose=False):
         if len(new_facets) == 0:
             convergence = True
         else:
-
             # add (only non-redundant!) facets
             O_inf.add_inequality(J[new_facets,:], X.b[new_facets,:])
             t += 1
