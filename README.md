@@ -14,7 +14,8 @@ We provide a Dockerfile to set up the environment for running the experiments. T
 docker build -t aegis .
 ```
 
-⚠️ **Note:** We build the Dockerfile on our Linux machine with AMD64 architecture. It should also work on Intel x86_64 architecture. However, it is not guaranteed to work on other architectures like Apple Silicon (ARM64). We cannot guarantee the compatibility so please be careful.
+⚠️ **Note:** We build the Dockerfile on our Linux machine with AMD64 architecture. It should also work on Intel x86_64 architecture. However, we are not sure if it works on other architectures like Apple Silicon (ARM64). We cannot guarantee the compatibility so please be careful.
+
 To run the Docker container, execute the following command:
 
 ```bash
