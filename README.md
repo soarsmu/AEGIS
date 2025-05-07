@@ -1,6 +1,6 @@
 # Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies
 
-This repository contains the code for the paper "Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies" co-authored by [Jieke Shi](https://jiekeshi.github.io), [Junda He](https://jundahe.notion.site/Junda-He-ab59db5a4604450dadd66591c1c357da), [Zhou Yang](https://yangzhou6666.github.io), [Ðorđe Žikelić](https://djordjezikelic.github.io), and [David Lo](http://www.mysmu.edu/faculty/davidlo/).
+This repository contains the code for the paper "Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies" co-authored by [Jieke Shi](https://jiekeshi.github.io), [Junda He](https://jundahe.notion.site/Junda-He-ab59db5a4604450dadd66591c1c357da), [Zhou Yang](https://yangzhou6666.github.io), [Ðorđe Žikelić](https://djordjezikelic.github.io), and [David Lo](http://www.mysmu.edu/faculty/davidlo/).
 
 ## Abstract
 
@@ -14,35 +14,37 @@ We provide a Dockerfile to set up the environment for running the experiments. T
 docker build -t aegis .
 ```
 
+⚠️ **Note:** We build the Dockerfile on our Linux machine with AMD64 architecture. It should also work on Intel x86_64 architecture. However, it is not guaranteed to work on other architectures like Apple Silicon (ARM64). We cannot guarantee the compatibility so please be careful.
 To run the Docker container, execute the following command:
 
 ```bash
-docker run -it -v /path/to/aegis:/aegis aegis
+docker run -it -v /path/to/AEGIS:/root/AEGIS aegis
 ```
 
 ## Running Experiments
 
 We provide the scripts to run the experiments of Aegis and the baseline VRL, which can be found in their respective directories, `aegis` and `baseline`, so that you can reproduce the results of our paper easily.
 
+Note that the checkpoint files of the neural policies can be found in the repository of VRL, which can be downloaded from [here](https://github.com/RU-Automated-Reasoning-Group/VRL_CodeReview/tree/master/ddpg_chkp).
+
 To run the experiments of Aegis, execute the following command:
 
 ```bash
 cd aegis
-
 bash RQ1.sh # Run the experiments for RQ1
 bash RQ23.sh # Run the experiments for RQ2 and RQ3
 ```
+
 The results of the experiments will be stored in the `results` directory.
 
 To run the experiments of VRL, execute the following command:
 
 ```bash
 cd baseline
-
 bash run_test_1000ep_table_1.sh # Run the experiments for RQ1
 bash RQ23.sh # Run the experiments for RQ2 and RQ3
 ```
 
-The results of the experiments will be stored in the `results` directory.
+The results of the experiments will be also stored in the `results` directory.
 
 We hope the above instructions are helpful for you to reproduce the results of our paper. If you have any questions, please feel free to contact us.

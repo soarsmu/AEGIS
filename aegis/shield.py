@@ -1,47 +1,41 @@
-
 import json
 import logging
 import argparse
-import random
 import numpy as np
 from tqdm import tqdm
 from DDPG import DDPG
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import make_pipeline
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from scipy.linalg import solve_continuous_are
+
 import time
-from metrics import neural_network_performance, linear_function_performance, combo_function_performance
+from metrics import (
+    neural_network_performance,
+    linear_function_performance,
+    combo_function_performance,
+)
 
 from envs import ENV_CLASSES
 import numpy as np
-from monitor import monitor_synthesis, monitor_synthesis_2
-import scipy
+from monitor import monitor_synthesis, monitor_synthesis
+
 from pympc.geometry.polyhedron import Polyhedron
 from pympc.dynamics.discrete_time_systems import LinearSystem
-from skopt import gp_minimize
-from skopt.space import Real
-from pympc.control.controllers import ModelPredictiveController
-from z3verify import bound_z3
-from sklearn.linear_model import LinearRegression
-from ES import evolution_policy, refine
+from ES import refine
 from linearization import compute_jacobians
 
 logging.getLogger().setLevel(logging.INFO)
+
 
 def synthesis(env, actor, test_episodes):
 
     S0 = Polyhedron.from_bounds(env.s_min, env.s_max)
     if env.continuous:
-        Sys = LinearSystem.from_continuous(np.asarray(env.A), np.asarray(env.B), env.timestep)
+        Sys = LinearSystem.from_continuous(
+            np.asarray(env.A), np.asarray(env.B), env.timestep
+        )
     else:
         Sys = LinearSystem(np.asarray(env.A), np.asarray(env.B))
 
     _, K = Sys.solve_dare(env.Q, env.R)
     K = np.asarray(K)
-    print(K)
-    print(env.A)
     K = finetune(env, K, actor, 5)
 
     O_inf = inf_synthesis(env, Sys, K)
@@ -111,8 +105,8 @@ def refine(env, actor, K, ce, test_episodes):
 
         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
 
-        distance_plus = - np.sum((a_plus - a).squeeze()**2) + env.reward(s, a_plus)
-        distance_minus = - np.sum((a_minus - a).squeeze()**2) + env.reward(s, a_minus)
+        distance_plus = -np.sum((a_plus - a).squeeze() ** 2) + env.reward(s, a_plus)
+        distance_minus = -np.sum((a_minus - a).squeeze() ** 2) + env.reward(s, a_minus)
 
         gradients = (distance_plus - distance_minus) / (2 * epsilon)
         K -= learning_rate * gradients
@@ -140,22 +134,27 @@ def finetune(env, K, actor, test_episodes):
 
         s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
 
-        distance_plus = - np.sum((a_plus - a).squeeze()**2)
-        distance_minus = - np.sum((a_minus - a).squeeze()**2)
+        distance_plus = -np.sum((a_plus - a).squeeze() ** 2)
+        distance_minus = -np.sum((a_minus - a).squeeze() ** 2)
 
         gradients = (distance_plus - distance_minus) / (2 * epsilon)
         K -= learning_rate * gradients
 
     return K
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Running Options")
-    parser.add_argument("--env", default="cartpole", type=str, help="The selected environment.")
+    parser.add_argument(
+        "--env", default="cartpole", type=str, help="The selected environment."
+    )
     parser.add_argument("--do_eval", action="store_true", help="Test RL controller")
     parser.add_argument("--test_episodes", default=5000, help="test_episodes", type=int)
     parser.add_argument("--rounds", default=100, help="rounds", type=int)
-    parser.add_argument("--do_retrain", action="store_true", help="retrain RL controller")
+    parser.add_argument(
+        "--do_retrain", action="store_true", help="retrain RL controller"
+    )
     args = parser.parse_args()
 
     env = ENV_CLASSES[args.env]()
@@ -186,10 +185,6 @@ if __name__ == "__main__":
         param_bounds = [tuple(DDPG_args["param_bounds"])]
 
     actor = DDPG(env, DDPG_args)
-    from DDPG import actor_boundary
-    # max_boundary, min_boundary = actor_boundary(env, K, actor)
-
-
 
     logging.info("Synthesizing Controller & Invariant...")
     start = time.time()
@@ -200,35 +195,28 @@ if __name__ == "__main__":
     logging.info("Sythesized Invariant (left): {}".format(O_inf.A))
     logging.info("Sythesized Invariant (right): {}".format(O_inf.b))
 
-    # max_boundary, min_boundary = actor_boundary(env, K, actor)
-    # param_bounds = [(min_boundary.item(), max_boundary.item())]
-    # logging.info("Parameter Bounds: {}".format(param_bounds))
-    # exit()
-
     logging.info("Testing Stability...")
     stability_rl, steps_rl = neural_network_performance(env, actor, stability_threshold)
     stability_K, steps_K = linear_function_performance(env, K, stability_threshold)
 
-
-    logging.info("Reinforcement Learning Policy's Steps to Stability: {}".format(stability_rl))
+    logging.info(
+        "Reinforcement Learning Policy's Steps to Stability: {}".format(stability_rl)
+    )
     logging.info("Linear Function Shield's Steps to Stability: {}".format(stability_K))
-    from stats import VD_A, mannwhitneyu
 
     logging.info("Sythesizing Monitor...")
-    # monitor_params = monitor_synthesis(param_bounds, env, actor, K, 500)
-    monitor_params = monitor_synthesis_2(args.env, param_bounds, env, actor, K, 200)
+    monitor_params = monitor_synthesis(args.env, param_bounds, env, actor, K, 200)
 
-    stability_combo, steps_combo = combo_function_performance(args, env, actor, K, monitor_params, stability_threshold)
+    stability_combo, steps_combo = combo_function_performance(
+        args, env, actor, K, monitor_params, stability_threshold
+    )
 
-    logging.info("Combo Function Shield's Steps to Stability: {}".format(stability_combo))
+    logging.info(
+        "Combo Function Shield's Steps to Stability: {}".format(stability_combo)
+    )
     syn_time = time.time() - start
-    # print(env.A)
-    # print(env.B)
-    # print(K)
-    # print(env.reset())
+
     logging.info("Monitoring Parameter: {}".format(monitor_params))
-    # exit()
-    # from memory_profiler import profile
 
     def check_necessary_condition(args, env, actor, a, rest_time):
         s = env.xk
@@ -236,8 +224,11 @@ if __name__ == "__main__":
         if args.env == "self_driving":
             f = env.polyf
         else:
+
             def f(x, u):
-                return env.A.dot(x.reshape([env.state_dim, 1])) + env.B.dot(u.reshape([env.action_dim, 1]))
+                return env.A.dot(x.reshape([env.state_dim, 1])) + env.B.dot(
+                    u.reshape([env.action_dim, 1])
+                )
 
         for i in range(rest_time):
             if not ((s <= env.x_max).all() and (s >= env.x_min).all()):
@@ -258,7 +249,6 @@ if __name__ == "__main__":
 
         return False
 
-    # @profile(precision=6)
     def shield_policy():
 
         volations = 0
@@ -272,48 +262,38 @@ if __name__ == "__main__":
             s = env.reset()
             time_overhead = 0
             calls = 0
-            # flag = False
+
             for i in range(args.test_episodes):
 
                 a = actor.predict(s.reshape([1, actor.s_dim]))
                 start = time.time()
                 ncp_a = a
-                # if args.env == "car_platoon_4" or args.env == "car_platoon_8":
-                #     if (np.abs(a_k.reshape(1, -1)[0] - a[0]) > monitor_params).all():
-                #         a = a_k
-                #         calls += 1
-                # else:
+
                 a_k = K.dot(s)
 
                 if np.abs(a - a_k) > monitor_params:
                     a = a_k
                     calls += 1
-                    if check_necessary_condition(args, env, actor, ncp_a, args.test_episodes - i):
+                    if check_necessary_condition(
+                        args, env, actor, ncp_a, args.test_episodes - i
+                    ):
                         real_calls += 1
-                        # flag = True
 
                 time_overhead += time.time() - start
                 s, r, terminal = env.step(a.reshape(actor.a_dim, 1))
                 total_rewards += r
-                # if terminal and i < args.test_episodes - 1:
                 if terminal:
                     if np.sum(np.power(env.xk, 2)) > env.terminal_err:
-                        # success_time += 1
                         volations += 1
                     break
             total_overheads += time_overhead
             total_calls += calls
             all_time += time.time() - sys_time
 
-        print("Total rewards: {}".format(total_rewards))
+        logging.info(f"Total rewards: {total_rewards}")
         return volations, all_time, total_overheads, total_calls, real_calls
 
-    # from pympler import tracker
-
-    # tr = tracker.SummaryTracker()
-
     volations, all_time, total_overheads, total_calls, real_calls = shield_policy()
-    # tr.print_diff()
 
     logging.info("Synthesis time: {}".format(syn_time))
     logging.info("System Time: {}".format(all_time))
@@ -322,5 +302,3 @@ if __name__ == "__main__":
     logging.info("Total calls: {}".format(total_calls))
     logging.info("Violations: {}".format(volations))
     logging.info("Real calls: {}".format(real_calls))
-
-

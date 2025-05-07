@@ -1,34 +1,8 @@
 import numpy as np
 from skopt import gp_minimize
 
-def monitor_synthesis(param_bounds, env, actor, K, test_episodes):
 
-    def objective(param):
-        violations = 0
-        overhead = 0
-        s = env.reset()
-        for j in range(test_episodes):
-            a = actor.predict(s.reshape([1, actor.s_dim]))
-            a_k = K.dot(s)
-
-            if (np.abs(a - a_k) > param).any():
-                a = a_k
-                overhead += 1
-            s, r, terminal = env.step(a.reshape(env.action_dim, 1))
-
-            if terminal and j < test_episodes:
-                    violations += 1
-
-        return np.log(violations+1) + overhead
-
-    # Perform Bayesian optimization
-    result = gp_minimize(objective, param_bounds, n_calls=20)  # Adjust the number of function evaluations (n_calls) as desired
-    best_param = result.x
-
-    return best_param
-
-
-def monitor_synthesis_2(env_name, param_bounds, env, actor, K, test_episodes):
+def monitor_synthesis(env_name, param_bounds, env, actor, K, test_episodes):
 
     unsafe_trace = []
     while len(unsafe_trace) < 5:
