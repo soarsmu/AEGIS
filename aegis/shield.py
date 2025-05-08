@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
                 a_k = K.dot(s)
 
-                if np.abs(a - a_k) > monitor_params:
+                if (np.abs(a - a_k) > monitor_params).any():
                     a = a_k
                     calls += 1
                     if check_necessary_condition(

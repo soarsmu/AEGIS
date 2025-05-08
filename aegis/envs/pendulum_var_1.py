@@ -4,8 +4,8 @@ from .environment import Environment
 
 def pendulum_var_1():
     m = 1.
-    l = 1.2
-    g = 10.
+    l = 1
+    g = 9.81
 
     #Dynamics that are continuous
     A = np.matrix([

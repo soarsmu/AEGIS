@@ -42,7 +42,7 @@
         "slice_spec": ["always[0,200] (a >= -0.3)", "always[0,200] (a <= 0.3)", "always[0,200] (b >= -0.5)", "always[0,200] (b <= 0.5)", "always[0,200] (c >= -0.3)", "always[0,200] (c <= 0.3)", "always[0,200] (d >= -0.5)", "always[0,200] (d <= 0.5)"],
         "var_map": {"a": 0, "b": 1, "c": 2, "d": 3},
         "spec_lens": 8,
-        "param_bounds": [1.0, 6.0],
+        "param_bounds": [10.0, 12.0],
         "stability_threshold": 3e-3
     },
     "pendulum":
@@ -253,6 +253,8 @@
         "minibatch_size": 64,
         "random_seed": 6553,
         "tau": 0.005,
+        "param_bounds": [0.5, 1.0],
+        "stability_threshold": 5e-8,
         "model_path": "./checkpoints/data_center_cooling/model.chkp",
         "test_episodes_len": 5000,
         "initial_conditions": [[1.6, 3.2], [1.6, 3.2], [1.6, 3.2]],
@@ -329,7 +331,7 @@
         "slice_spec": ["always[0,200] (a > -2.0)", "always[0,200] (a < 2.0)", "always[0,200] (b >= -1.5707963)", "always[0,200] (b <= 1.5707963)"],
         "var_map": {"a": 0, "b": 1},
         "spec_lens": 4,
-        "param_bounds": [1.0, 2.7],
+        "param_bounds": [0.0, 0.2],
         "stability_threshold": 0.15
     },
     "car_platoon_4":

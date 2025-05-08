@@ -99,7 +99,7 @@ def combo_function_performance(
             xk, r, terminal = env.observation()
             u = actor.predict(np.reshape(np.array(xk), (1, actor.s_dim)))
             uk = K.dot(xk)
-            if args.env == "car_platoon_4" or args.env == "car_platoon_8":
+            if args.env == "car_platoon_4" or args.env == "car_platoon_8" or args.env == "self_driving_var":
                 if (np.abs(uk.reshape(1, -1)[0] - u[0]) > monitor_params).all():
                     u = uk
             else:

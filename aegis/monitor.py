@@ -66,8 +66,7 @@ def monitor_synthesis(env_name, param_bounds, env, actor, K, test_episodes):
         return np.log(violations+1) - real_overhead/(overhead+1)
 
     # Perform Bayesian optimization
-    result = gp_minimize(objective, param_bounds, n_calls=20, verbose=True)  # Adjust the number of function evaluations (n_calls) as desired
-    # print(result)
+    result = gp_minimize(objective, param_bounds, n_calls=20, verbose=True)  # Adjust the number of function evaluations
     best_param = result.x
 
     return best_param

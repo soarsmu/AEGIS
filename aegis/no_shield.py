@@ -69,7 +69,7 @@ if __name__ == "__main__":
         total_rewards = 0
         volations = 0
         all_time = time.time()
-        for i in tqdm(range(20)):
+        for i in tqdm(range(1)):
             s = env.reset()
             for i in range(args.test_episodes):
                 a = actor.predict(s.reshape([1, actor.s_dim]))
@@ -77,7 +77,7 @@ if __name__ == "__main__":
                 total_rewards += r
                 if terminal and i < args.test_episodes - 1:
                     volations += 1
-                    break
+                    # break
             all_time = time.time() - all_time
 
         return volations
