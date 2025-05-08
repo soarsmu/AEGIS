@@ -17,10 +17,10 @@ def pendulum():
     u_max = np.array([[1.]])
 
     # intial state space
-    s_min = np.array([[-0.5],[-0.5]])
-    s_max = np.array([[ 0.5],[0.5]])
-    x_min = np.array([[-0.6], [-0.6]])
-    x_max = np.array([[0.6], [0.6]])
+    s_min = np.array([[-0.35],[-0.35]])
+    s_max = np.array([[ 0.35],[0.35]])
+    x_min = np.array([[-0.5], [-0.5]])
+    x_max = np.array([[0.5], [0.5]])
 
     # coefficient of reward function
     Q = np.matrix("1 0 ; 0 1")

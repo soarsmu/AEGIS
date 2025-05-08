@@ -35,6 +35,7 @@ def synthesis(env, actor, test_episodes):
         Sys = LinearSystem(np.asarray(env.A), np.asarray(env.B))
 
     _, K = Sys.solve_dare(env.Q, env.R)
+    logging.info(f"Initial Controller: {K}")
     K = np.asarray(K)
     K = finetune(env, K, actor, 5)
 
@@ -169,13 +170,21 @@ if __name__ == "__main__":
 
     DDPG_args["test_episodes"] = args.test_episodes
 
-    if env.x_min is None:
-        x_eq = np.zeros([env.state_dim, 1])
-        u_eq = np.zeros([env.action_dim, 1])
+    x_eq = np.zeros([env.state_dim, 1])
+    u_eq = np.zeros([env.action_dim, 1])
 
+    if env.x_min is None:
         env.A, env.B = compute_jacobians(env.polyf, x_eq, u_eq)
+        logging.info(f"Environment Dynamics: {env.A} {env.B}")
         env.x_min = np.array(DDPG_args["safe_spec"][0]).reshape([-1, 1])
         env.x_max = np.array(DDPG_args["safe_spec"][1]).reshape([-1, 1])
+    else:
+        def f(x, u):
+            return env.A.dot(x) + env.B.dot(u)
+        apprx_A, apprx_B = compute_jacobians(f, x_eq, u_eq)
+        logging.info(f"Environment Dynamics: {apprx_A} {apprx_B}")
+        env.A = apprx_A
+        env.B = apprx_B
 
     stability_threshold = DDPG_args["stability_threshold"]
 

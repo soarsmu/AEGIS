@@ -1,6 +1,6 @@
 # Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies
 
-This repository contains the code for the paper "Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies" co-authored by [Jieke Shi](https://jiekeshi.github.io), [Junda He](https://jundahe.notion.site/Junda-He-ab59db5a4604450dadd66591c1c357da), [Zhou Yang](https://yangzhou6666.github.io), [Ðorđe Žikelić](https://djordjezikelic.github.io), and [David Lo](http://www.mysmu.edu/faculty/davidlo/).
+This repository contains the code for the paper "Synthesizing Efficient and Permissive Programmatic Runtime Shields for Neural Policies" co-authored by [Jieke Shi](https://jiekeshi.github.io), [Junda He](https://jundahe.github.io), [Zhou Yang](https://yangzhou6666.github.io), [Ðorđe Žikelić](https://djordjezikelic.github.io), and [David Lo](http://www.mysmu.edu/faculty/davidlo/).
 
 ## Abstract
 
